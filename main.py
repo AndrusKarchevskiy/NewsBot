@@ -77,11 +77,34 @@ def get_news(news_topic, quantity_news, news_number):
                       f'Если вы хотите получить больше новостей, попробуйте повторить попытку чуть позже, либо ' \
                       f'введите команду \n<b>/set_news_topic</b>, чтобы сменить ключевое ' \
                       f'слово, по которому будете получать новости😉'
+
         else:
             message = f'🧐Новостей по теме <b>"{news_topic}"</b> не найдено. ' \
                       f'Вы можете повторить попытку чуть позже, либо ввести ' \
                       f'команду \n<b>/set_news_topic</b>, чтобы сменить ключевое ' \
                       f'слово, по которому будете получать новости😉'
+
+    return message
+
+
+def get_all_user_info(user_id):
+    """Возвращает сообщение с информацией о настройках пользователя"""
+    user_info = db.get_all_user_parameters(user_id)
+    user_send_time = user_info[2]
+    user_city = user_info[3]
+    user_news_topic = user_info[4]
+    user_quantity_news = user_info[5]
+    user_status = user_info[6]
+
+    message = f'✔Время, в которое вы получаете новости и погоду: <b>{user_send_time}</b>\n' \
+              f'✔Город, из которого вы получате сводку погоды: <b>{user_city}</b>\n' \
+              f'✔Ключевое слово (фраза), по которой вы получаете новости: <b>{user_news_topic}</b>\n' \
+              f'✔Количество новостей, которое вы получаете: <b>{user_quantity_news}</b>\n'
+
+    if user_status == 1:
+        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Да</b>'
+    else:
+        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Нет</b>'
 
     return message
 
@@ -92,13 +115,11 @@ def change_time(user_id, new_time):
     try:
         section = 'send_time'
         old_time = db.get_user_parameter(user_id, section)
-
         message = f'✔Время <b>{old_time}</b> успешно удалено!😃\n'
-        new_time = parse(new_time).strftime("%H:%M")
 
+        new_time = parse(new_time).strftime("%H:%M")
         parameter = new_time
         db.change_user_parameter(user_id, section, parameter)
-
         message += f'✔Время <b>{new_time}</b> успешно установлено!😃'
 
     except Exception as error:
@@ -113,12 +134,10 @@ def change_city(user_id, new_city):
     Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
     try:
         new_city = new_city.title()
-
-        owm.weather_at_place(new_city)
+        owm.weather_at_place(new_city)  # Пробуем получить данные из региона, введённого пользователем
 
         section = 'city'
         old_city = db.get_user_parameter(user_id, section)
-
         message = f'✔Город <b>{old_city}</b> успешно удалён!😃\n'
 
         parameter = new_city
@@ -151,7 +170,6 @@ def change_news_topic(user_id, new_news_topic):
 
     if news['totalResults'] >= min_quantity_news:
         section = 'news_topic'
-
         old_news_topic = db.get_user_parameter(user_id, section)
         message = f'✔Тема (ключевое слово) <b>"{old_news_topic}"</b> успешно удалено(а)!😃\n'
 
@@ -174,15 +192,13 @@ def change_status(user_id):
     if old_status == 1:
         message = '<b>Отмена подписки была успешно проведена</b>. Теперь, вы не ' \
                   'будете получать новости, погоду в определённое время, но в ' \
-                  'любой момент снова можете подписаться, введя эту же команду😉' \
-
+                  'любой момент снова можете подписаться, введя эту же команду😉'
         parameter = 0
         db.change_user_parameter(user_id, section, parameter)
 
     else:
         message = '<b>Восстановление подписки было успешно проведено</b>. Теперь, ' \
                   'вы будете получать новости и погоду в выбранное вами время😉'
-
         parameter = 1
         db.change_user_parameter(user_id, section, parameter)
 
@@ -194,7 +210,6 @@ async def send_welcome(message: types.Message):
     """Выводит приветственное соощение пользователю, активирует 'reply' клавиатуру"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     await message.reply('<b>🤝Здравствуйте, {0.first_name}🤝!</b>'.format(message.from_user))
@@ -205,7 +220,6 @@ async def send_welcome(message: types.Message):
     item2 = types.KeyboardButton('🧐Новости')
 
     markup.add(item1, item2)
-
     await message.answer(template_messages.welcome_message, reply_markup=markup)
 
 
@@ -214,7 +228,6 @@ async def show_information(message: types.Message):
     """Отправляет информацию о боте пользователю"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     await message.answer(template_messages.information_message)
@@ -225,7 +238,6 @@ async def send_weather(message: types.Message):
     """Отправляет погоду по нажатию на кнопку"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -234,7 +246,6 @@ async def send_weather(message: types.Message):
 
     section = 'city'
     city = db.get_user_parameter(user_id, section)
-
     try:
         weather = get_weather(city)
         await message.answer(weather)
@@ -250,7 +261,6 @@ async def send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -267,13 +277,11 @@ async def send_news(message: types.Message):
 
     while news_number < quantity_news:
         news = get_news(news_topic, quantity_news, news_number)
-
         await message.answer(news)
 
         # Если команда "/set_news_topic" в news - значит, больше новостей не найдено -> выход из цикла
         if '/set_news_topic' in news:
             break
-
         time.sleep(1)
         news_number += 1
 
@@ -283,7 +291,6 @@ async def set_time(message: types.Message):
     """Изменяет время регулярной отправки погоды и новостей"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -298,7 +305,6 @@ async def set_time(message: types.Message):
     else:
         new_time = message.text
         message_to_user = change_time(user_id, new_time)
-
         await message.answer(message_to_user)
 
 
@@ -307,7 +313,6 @@ async def set_city(message: types.Message):
     """Изменяет город, из которого пользователь будет получать сводку погоды"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -321,7 +326,6 @@ async def set_city(message: types.Message):
     else:
         new_city = message.text
         message_to_user = change_city(user_id, new_city)
-
         await message.answer(message_to_user)
 
 
@@ -330,7 +334,6 @@ async def set_news_topic(message: types.Message):
     """Изменяет ключевое слово, по которому отбираются новости"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -346,7 +349,6 @@ async def set_news_topic(message: types.Message):
     else:
         new_news_topic = message.text
         message_to_user = change_news_topic(user_id, new_news_topic)
-
         await message.answer(message_to_user)
 
 
@@ -376,7 +378,6 @@ async def set_status(message: types.Message):
     db.add_new_user(user_id, user_name)
 
     message_to_user = change_status(user_id)
-
     await message.answer(message_to_user)
 
 
@@ -417,10 +418,10 @@ async def set_quantity_news(message: types.Message):
 async def change_quantity_news(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     await call.answer(cache_time=10)
+
     callback_data = str(call.data).replace('news_', '')
 
     if callback_data.isdigit():
@@ -440,12 +441,23 @@ async def change_quantity_news(call: types.CallbackQuery):
     await call.message.edit_reply_markup(reply_markup=None)
 
 
+@dp.message_handler(commands='check_params')
+async def check_params(message: types.Message):
+    """Отправляет текущие настройки пользователя"""
+    user_id = message.from_user.id
+    user_name = str(message.from_user.full_name)
+    db.add_new_user(user_id, user_name)
+
+    user_params = get_all_user_info(user_id)
+    await message.answer(f'Отправляю ваши текущие настройки:\n\n{user_params}\n\nЕсли вы хотите изменить что-либо, '
+                         f'воспользуйтесь остальными командами!😃')
+
+
 @dp.message_handler(commands='donate')
 async def donate(message: types.Message):
     """Отправлят кнопки"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'
@@ -468,7 +480,6 @@ async def donate(message: types.Message):
 async def donation(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     await call.answer(cache_time=10)
@@ -490,11 +501,10 @@ async def donation(call: types.CallbackQuery):
 
 @dp.message_handler()
 async def message_control(message: types.Message):
-    """Обрабатывает все текстовые сообщения. В функции, при вводе значений после ввода команды,
+    """Обрабатывает все текстовые сообщения. В функциях, при вводе значений после ввода команды,
     значение отправляется обратно в нужную функцию, в которой обрабатывается"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
 
     section = 'progress'

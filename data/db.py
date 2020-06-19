@@ -41,18 +41,28 @@ def get_user_parameter(user_id, section):
     return info[0][0]
 
 
-def get_all_user_info(user_id):
-    """Возвращает всю информацию о пользователе"""
+def get_all_user_parameters(user_id):
+    """Возвращает все параметры пользователя"""
     con = lite.connect(data_users)
     cur = con.cursor()
-    cur.execute(f"SELECT * FROM tbl_users WHERE id = ?", (user_id,))
-    info = cur.fetchall()
-    return info
+    cur.execute("SELECT * FROM tbl_users WHERE id = ?", (user_id,))
+    user_info = cur.fetchall()
+    return user_info[0]
+
+
+def get_all_users_info():
+    """Возвращает информацию о всех пользователях"""
+    con = lite.connect(data_users)
+    cur = con.cursor()
+    cur.execute("SELECT * FROM tbl_users")
+    users_info = cur.fetchall()
+    print(users_info)
+    return users_info
 
 
 def delete_user_info(user_id):
     """Удаляет пользователя из базы"""
     con = lite.connect(data_users)
     cur = con.cursor()
-    cur.execute(f"DELETE FROM tbl_users WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM tbl_users WHERE user_id = ?", (user_id,))
     con.commit()
