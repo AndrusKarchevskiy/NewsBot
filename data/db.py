@@ -21,7 +21,6 @@ def add_new_user(user_id, user_name):
                     "time_registered)"
                     "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', 'started', ?)", (user_id, str(user_name),
                                                                                           str(today)))
-
         con.commit()
 
     cur.close()

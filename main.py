@@ -36,8 +36,8 @@ def get_weather(city):
                   f'{template_messages.weather_emoji[detailed_status]}'
     else:
         message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>'
-    message += '\n(P.S.: в городах с населением менее миллиона, могут быть неточности с определением этого статуса, ' \
-               'не серчайте😉. Остальная информация - точная)'
+    message += '\n<i>(P.S. В городах с населением менее миллиона, могут быть неточности с определением этого статуса, '\
+               'не серчайте😉. Остальная информация - точная)</i>'
 
     message += f'\n\n' \
                f'🌡Температура: <b>{temp} градус(ов)</b>\n' \
@@ -68,8 +68,10 @@ def get_news(news_topic, quantity_news, news_number):
                                                sort_by='relevancy')
 
     try:
+        time_published = all_articles["articles"][news_number]["publishedAt"]
+
         message = f'<b>Дата публикации: ' \
-                  f'{parse(all_articles["articles"][news_number]["publishedAt"]).strftime("%d.%m.%Y")}</b>\n' \
+                  f'{parse(time_published).strftime("%d.%m.%Y")}</b>\n' \
                   f'✔{all_articles["articles"][news_number]["url"]}'
 
     except IndexError:
@@ -281,7 +283,8 @@ async def send_news(message: types.Message):
         news = get_news(news_topic, quantity_news, news_number)
         await message.answer(news)
 
-        # Если команда "/set_news_topic" в news - значит, больше новостей не найдено -> выход из цикла
+        # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше новостей не
+        # найдено -> выход из цикла
         if '/set_news_topic' in news:
             break
         time.sleep(1)
@@ -384,7 +387,7 @@ async def set_status(message: types.Message):
 
 
 @dp.message_handler(commands='set_quantity_news')
-async def set_quantity_news(message: types.Message):
+async def set_quantity_news_buttons(message: types.Message):
     """Изменяет количество новостей, которое будет получать пользователь"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -443,20 +446,8 @@ async def change_quantity_news(call: types.CallbackQuery):
     await call.message.edit_reply_markup(reply_markup=None)
 
 
-@dp.message_handler(commands='check_params')
-async def check_params(message: types.Message):
-    """Отправляет текущие настройки пользователя"""
-    user_id = message.from_user.id
-    user_name = str(message.from_user.full_name)
-    db.add_new_user(user_id, user_name)
-
-    user_params = get_all_user_info(user_id)
-    await message.answer(f'Отправляю ваши текущие настройки:\n\n{user_params}\n\nЕсли вы хотите изменить что-либо, '
-                         f'воспользуйтесь остальными командами!😃')
-
-
 @dp.message_handler(commands='donate')
-async def donate(message: types.Message):
+async def donate_buttons(message: types.Message):
     """Отправлят кнопки"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -489,16 +480,25 @@ async def donation(call: types.CallbackQuery):
     callback_data = str(call.data).replace('donate_', '')
 
     if callback_data == 'Sberbank':
-        await call.message.answer(f'Номер карты (Сбербанк): <b>{keys.CARD_NUMBER}</b> - {keys.MY_NAME}')
+        await call.message.answer(f'Номер карты (Сбербанк): <b>{keys.CARD_NUMBER} - {keys.MY_NAME}</b>')
 
-    elif callback_data == 'cancel':
-        await call.message.answer(f'Скрываю клавиатуру😃')
-
-    await call.message.answer('Если вы задонатили, <b>большое спасибо!</b> Вы очень мотивируете меня на поддержку '
+    await call.message.answer('<i>Если вы задонатили, большое спасибо! Вы очень мотивируете меня на поддержку '
                               'и улучшение этого бота!🖤\nЕсли вы просто его активный пользователь, '
-                              'то знайте, что тоже очень помогаете проекту, продвигаете его среди остальных!😊')
+                              'то знайте, что тоже очень помогаете проекту, продвигаете его среди остальных!</i>😊')
 
     await call.message.edit_reply_markup(reply_markup=None)
+
+
+@dp.message_handler(commands='check_params')
+async def check_params(message: types.Message):
+    """Отправляет текущие настройки пользователя"""
+    user_id = message.from_user.id
+    user_name = str(message.from_user.full_name)
+    db.add_new_user(user_id, user_name)
+
+    user_params = get_all_user_info(user_id)
+    await message.answer(f'Отправляю ваши текущие настройки:\n\n{user_params}\n\nЕсли вы хотите изменить что-либо, '
+                         f'воспользуйтесь остальными командами!😃')
 
 
 @dp.message_handler()
