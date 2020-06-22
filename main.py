@@ -368,10 +368,10 @@ async def reset_settings(message: types.Message):
     db.change_user_parameter(user_id, section, parameter)
 
     db.delete_user_info(user_id)
-    await message.answer('✔Старые настройки успешно удалены!\n'
-                         '✔Новые настройки успешно установлены!\n\n'
-                         'Теперь, вы будете ежедневно получать одну новость по ключевому слову <b>Россия</b> '
-                         'и погоду из Москвы в 08:00 по МСК')
+    await message.answer('✔<i>Старые настройки успешно удалены!</i>\n'
+                         '✔<i>Новые настройки успешно установлены!</i>\n\n'
+                         '<b>Теперь, вы будете ежедневно получать одну новость по ключевому слову "Россия" '
+                         'и погоду из Москвы в 08:00 по МСК</b>')
 
     db.add_new_user(user_id, user_name)
 
