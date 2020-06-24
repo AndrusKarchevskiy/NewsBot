@@ -6,12 +6,15 @@ from pyowm import OWM  # API для работы с погодой
 from newsapi import NewsApiClient  # API для работы с новостями
 
 import time
-from datetime import datetime, timedelta
-from dateutil.parser import parse
 
 from data import db  # Модуль для работы с базой данных
+
 from settings import keys  # Модуль, в котором хранятся Токены от API, "security" информация
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
+from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
+# Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
+from settings.changer import change_time, change_city, change_news_topic, change_status
+from settings.get_info import get_all_user_info
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,193 +23,6 @@ news_api = NewsApiClient(api_key=keys.NEWS_TOKEN)
 
 bot = Bot(token=keys.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
-
-
-def get_weather(city):
-    """Работает с pyowm API, возвращает готовое сообщение с погодой"""
-    observation = owm.weather_at_place(city)
-    w = observation.get_weather()
-    detailed_status = w.get_detailed_status()
-    temp = str(w.get_temperature("celsius")["temp"])
-    humidity = str(w.get_humidity())
-    wind = str(w.get_wind()["speed"])
-
-    if detailed_status in template_messages.weather_emoji:
-        message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>' \
-                  f'{template_messages.weather_emoji[detailed_status]}'
-    else:
-        message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>'
-    message += '\n<i>(P.S. В городах с населением менее миллиона, могут быть неточности с определением этого статуса, '\
-               'не серчайте😉. Остальная информация - точная)</i>'
-
-    message += f'\n\n' \
-               f'🌡Температура: <b>{temp} градус(ов)</b>\n' \
-               f'💨Скорость ветра: <b>{wind} м/с</b>\n' \
-               f'💦Влажность: <b>{humidity}%</b>'
-
-    return message
-
-
-def get_news(news_topic, quantity_news, news_number):
-    """Работает с news API, возвращает сообщение с новостью"""
-    today = datetime.today()
-    today = today.strftime("%Y-%m-%d")
-
-    all_articles = news_api.get_everything(q=news_topic,
-                                           from_param=today,
-                                           to=today,
-                                           sort_by='relevancy')
-
-    max_news = 5
-    if len(all_articles["articles"]) < max_news:
-        yesterday = datetime.now() - timedelta(days=1)
-        yesterday = yesterday.strftime("%Y-%m-%d")
-
-        all_articles = news_api.get_everything(q=news_topic,
-                                               from_param=yesterday,
-                                               to=today,
-                                               sort_by='relevancy')
-
-    try:
-        time_published = all_articles["articles"][news_number]["publishedAt"]
-
-        message = f'<b>Дата публикации: ' \
-                  f'{parse(time_published).strftime("%d.%m.%Y")}</b>\n' \
-                  f'✔{all_articles["articles"][news_number]["url"]}'
-
-    except IndexError:
-        if news_number > 0:
-            message = f'🧐К сожалению, больше новостей по теме <b>"{news_topic}"</b> не найдено. Удалось найти ' \
-                      f'только <b>{news_number+1}</b> новости(ей) из <b>{quantity_news}</b>🙁.\n' \
-                      f'Если вы хотите получить больше новостей, попробуйте повторить попытку чуть позже, либо ' \
-                      f'введите команду \n<b>/set_news_topic</b>, чтобы сменить ключевое ' \
-                      f'слово, по которому будете получать новости😉'
-
-        else:
-            message = f'🧐Новостей по теме <b>"{news_topic}"</b> не найдено. ' \
-                      f'Вы можете повторить попытку чуть позже, либо ввести ' \
-                      f'команду \n<b>/set_news_topic</b>, чтобы сменить ключевое ' \
-                      f'слово, по которому будете получать новости😉'
-
-    return message
-
-
-def get_all_user_info(user_id):
-    """Возвращает сообщение с информацией о настройках пользователя"""
-    user_info = db.get_all_user_parameters(user_id)
-    user_send_time = user_info[2]
-    user_city = user_info[3]
-    user_news_topic = user_info[4]
-    user_quantity_news = user_info[5]
-    user_status = user_info[6]
-
-    message = f'✔Время, в которое вы получаете новости и погоду: <b>{user_send_time}</b>\n' \
-              f'✔Город, из которого вы получате сводку погоды: <b>{user_city}</b>\n' \
-              f'✔Ключевое слово (фраза), по которой вы получаете новости: <b>{user_news_topic}</b>\n' \
-              f'✔Количество новостей, которое вы получаете: <b>{user_quantity_news}</b>\n'
-
-    if user_status == 1:
-        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Да</b>'
-    else:
-        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Нет</b>'
-
-    return message
-
-
-def change_time(user_id, new_time):
-    """Вспомогательная функция (основная - set_time), в которой происходит валидация введённого времени пользователем.
-    Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
-    try:
-        section = 'send_time'
-        old_time = db.get_user_parameter(user_id, section)
-        message = f'✔Время <b>{old_time}</b> успешно удалено!😃\n'
-
-        new_time = parse(new_time).strftime("%H:%M")
-        parameter = new_time
-        db.change_user_parameter(user_id, section, parameter)
-        message += f'✔Время <b>{new_time}</b> успешно установлено!😃'
-
-    except Exception as error:
-        print(error)
-        message = template_messages.not_correct_param
-
-    return message
-
-
-def change_city(user_id, new_city):
-    """Вспомогательная функция (основная - set_city), в которой происходит валидация введённого города пользователем.
-    Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
-    try:
-        new_city = new_city.title()
-        owm.weather_at_place(new_city)  # Пробуем получить данные из региона, введённого пользователем
-
-        section = 'city'
-        old_city = db.get_user_parameter(user_id, section)
-        message = f'✔Город <b>{old_city}</b> успешно удалён!😃\n'
-
-        parameter = new_city
-        db.change_user_parameter(user_id, section, parameter)
-
-        message += f'✔Город <b>{new_city}</b> успешно установлен!😃'
-
-    except Exception as error:
-        print(error)
-        message = template_messages.not_correct_param
-
-    return message
-
-
-def change_news_topic(user_id, new_news_topic):
-    """Вспомогательная функция (основная - set_news_topic), в которой происходит валидация введённой пользователем
-    темы новостей. Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
-    today = datetime.today()
-    today = today.strftime("%Y-%m-%d")
-
-    yesterday = datetime.now() - timedelta(days=1)
-    yesterday = yesterday.strftime("%Y-%m-%d")
-
-    news = news_api.get_everything(q=new_news_topic,
-                                   from_param=yesterday,
-                                   to=today,
-                                   sort_by='relevancy')
-
-    min_quantity_news = 5
-
-    if news['totalResults'] >= min_quantity_news:
-        section = 'news_topic'
-        old_news_topic = db.get_user_parameter(user_id, section)
-        message = f'✔Тема (ключевое слово) <b>"{old_news_topic}"</b> успешно удалено(а)!😃\n'
-
-        db.change_user_parameter(user_id, section, new_news_topic)
-        message += f'✔Тема (ключевое слово) <b>"{new_news_topic}"</b> успешно установлено(а)!😃\n'
-
-    else:
-        message = 'Мне не удалось найти новостей по вашей теме за последние 2 дня. А мне хочется, ' \
-                  'чтобы вы получали только самую актуальную информацию. Поэтому, <b>изменение не принято</b>, ' \
-                  'выберете другую тему (ключевое слово)'
-
-    return message
-
-
-def change_status(user_id):
-    section = 'status'
-
-    old_status = db.get_user_parameter(user_id, section)
-
-    if old_status == 1:
-        message = '<b>Отмена подписки была успешно проведена</b>. Теперь, вы не ' \
-                  'будете получать новости, погоду в определённое время, но в ' \
-                  'любой момент снова можете подписаться, введя эту же команду😉'
-        parameter = 0
-        db.change_user_parameter(user_id, section, parameter)
-
-    else:
-        message = '<b>Восстановление подписки было успешно проведено</b>. Теперь, ' \
-                  'вы будете получать новости и погоду в выбранное вами время😉'
-        parameter = 1
-        db.change_user_parameter(user_id, section, parameter)
-
-    return message
 
 
 @dp.message_handler(commands=['start'])
