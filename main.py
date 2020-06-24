@@ -13,8 +13,8 @@ from settings import keys  # Модуль, в котором хранятся Т
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
 from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
-from settings.changer import change_time, change_city, change_news_topic, change_status
-from settings.get_info import get_all_user_info
+from settings.changer_params import change_time, change_city, change_news_topic, change_status
+from settings.getter_info import get_all_user_info
 
 logging.basicConfig(level=logging.INFO)
 
