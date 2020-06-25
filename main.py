@@ -14,7 +14,6 @@ from settings import template_messages  # Модуль, в котором хра
 from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
 from settings.changer_params import change_time, change_city, change_news_topic, change_status
-from settings.getter_info import get_all_user_info
 
 logging.basicConfig(level=logging.INFO)
 
@@ -312,7 +311,7 @@ async def check_params(message: types.Message):
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    user_params = get_all_user_info(user_id)
+    user_params = db.get_all_user_info(user_id)
     await message.answer(f'Отправляю ваши текущие настройки:\n\n{user_params}\n\nЕсли вы хотите изменить что-либо, '
                          f'воспользуйтесь остальными командами!😃')
 
