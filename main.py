@@ -7,6 +7,9 @@ from newsapi import NewsApiClient  # API для работы с новостям
 
 import time
 
+import aiocron
+import asyncio
+
 from data import db  # Модуль для работы с базой данных
 
 from settings import keys  # Модуль, в котором хранятся Токены от API, "security" информация
@@ -35,8 +38,8 @@ async def send_welcome(message: types.Message):
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    item1 = types.KeyboardButton('🌤Погода')
-    item2 = types.KeyboardButton('🧐Новости')
+    item1 = types.KeyboardButton('🧐Новости')
+    item2 = types.KeyboardButton('🌤Погода')
 
     markup.add(item1, item2)
     await message.answer(template_messages.welcome_message, reply_markup=markup)
@@ -335,5 +338,58 @@ async def message_control(message: types.Message):
         await message.answer(template_messages.not_correct_message)
 
 
+def get_user_params(user):
+    """Возвращает словарь с данными о пользователе"""
+    params = {'id': user[0],
+              'name': user[1],
+              'send_time': user[2],
+              'city': user[3],
+              'news_topic': user[4],
+              'quantity_news': user[5],
+              'status': user[6]
+              }
+    return params
+    
+
+@aiocron.crontab('* * * * *')
+async def thread_get_all_users():
+    # Получаем список кортежей со всеми пользователями
+    all_users = db.get_all_users_info()
+
+    for user in all_users:
+        # Получаем словарь для более удобной работы
+        user_params = get_user_params(user)
+
+        user_hours_minutes = user_params['send_time'].split(':')
+        hours = user_hours_minutes[0]
+        minutes = user_hours_minutes[1]
+
+        @aiocron.crontab(f'{minutes} {hours} * * *')
+        async def regular_sending():
+            """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
+            # Работа с новостями
+            news_number = 0
+            while news_number < user_params['quantity_news']:
+                news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
+                await bot.send_message(user_params['id'], news_message)
+                print(news_message)
+
+                # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше
+                # новостей не найдено -> выход из цикла
+                if '/set_news_topic' in news_message:
+                    break
+                time.sleep(1)
+                news_number += 1
+
+                # Работа с погодой
+                weather_message = get_weather(user_params['city'])
+                await bot.send_message(user_params['id'], weather_message)
+                print(weather_message)
+
+        await asyncio.sleep(0.1)
+
+
+loop = asyncio.get_event_loop()
+
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    executor.start_polling(dp, loop=loop)
