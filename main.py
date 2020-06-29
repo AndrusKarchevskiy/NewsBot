@@ -78,8 +78,7 @@ async def send_weather(message: types.Message):
         weather = get_weather(city)
         await message.answer(weather)
 
-    except Exception as error:
-        print(error)
+    except Exception:
         await message.answer('К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
                              'повторите попытку🤔')
 
@@ -339,8 +338,7 @@ async def message_control(message: types.Message):
     try:
         await globals()[command](message)
 
-    except Exception as error:
-        print(error)
+    except Exception:
         await message.answer(template_messages.not_correct_message)
 
 
