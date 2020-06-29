@@ -380,7 +380,6 @@ async def threading_control():
     all_users = db.get_all_users_info()
 
     for user in all_users:
-        print(user)
         # Получаем словарь для более удобной работы
         user_params = get_user_params(user)
 
