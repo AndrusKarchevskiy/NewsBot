@@ -4,12 +4,11 @@ from newsapi import NewsApiClient  # API для работы с новостям
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 
-from settings import keys  # Модуль, в котором хранятся Токены от API, "security" информация
+from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
-from data import db
 
-owm = OWM(keys.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=keys.NEWS_TOKEN)
+owm = OWM(config.OWM_TOKEN, language='ru')
+news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
 
 
 def get_weather(city):

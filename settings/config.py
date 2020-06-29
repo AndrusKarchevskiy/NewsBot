@@ -1,0 +1,5 @@
+BOT_TOKEN = ''
+OWM_TOKEN = ''
+NEWS_TOKEN = ''
+CARD_NUMBER = ''
+MY_NAME = ''

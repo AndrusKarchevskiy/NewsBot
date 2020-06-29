@@ -5,13 +5,13 @@ from pyowm import OWM  # API для работы с погодой
 from newsapi import NewsApiClient  # API для работы с новостями
 
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
-from settings import keys  # Модуль, в котором хранятся Токены от API, "security" информация
+from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
 
 from data import db  # Модуль для работы с базой данных
 
 
-owm = OWM(keys.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=keys.NEWS_TOKEN)
+owm = OWM(config.OWM_TOKEN, language='ru')
+news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
 
 
 def change_time(user_id, new_time):

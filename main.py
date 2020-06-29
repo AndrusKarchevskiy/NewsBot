@@ -12,7 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data import db  # Модуль для работы с базой данных
 
-from settings import keys  # Модуль, в котором хранятся Токены от API, "security" информация
+from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
 from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
@@ -21,11 +21,11 @@ from settings.changer_params import change_time, change_city, change_news_topic,
 # Включаем логгирование
 logging.basicConfig(level=logging.INFO)
 
-owm = OWM(keys.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=keys.NEWS_TOKEN)
+owm = OWM(config.OWM_TOKEN, language='ru')
+news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
 
 # Инициализируем бота и диспетчер
-bot = Bot(token=keys.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
+bot = Bot(token=config.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
 
 # Инициализируем, запускаем apscheduler (нужен для регулярной рассылки погоды и новостей)
@@ -303,7 +303,7 @@ async def donation(call: types.CallbackQuery):
     callback_data = str(call.data).replace('donate_', '')
 
     if callback_data == 'Sberbank':
-        await call.message.answer(f'Номер карты (Сбербанк): <b>{keys.CARD_NUMBER} - {keys.MY_NAME}</b>')
+        await call.message.answer(f'Номер карты (Сбербанк): <b>{config.CARD_NUMBER} - {config.MY_NAME}</b>')
 
     await call.message.answer('<i>Если вы задонатили, большое спасибо! Вы очень мотивируете меня на поддержку '
                               'и улучшение этого бота!🖤\nЕсли вы просто его активный пользователь, '
@@ -387,15 +387,17 @@ async def threading_control():
             user_hours_minutes = user_params['send_time'].split(':')
             hours = int(user_hours_minutes[0])
             minutes = int(user_hours_minutes[1])
+
             try:
                 scheduler.remove_job(job_id=str(user_params['id']))
             except:
                 pass
+
             scheduler.add_job(regular_sending, CronTrigger.from_crontab(f'{minutes} {hours} * * *'),
                               args=(user_params,), id=str(user_params['id']))
 
-        # Делаем паузу, чтобы уложиться в лимит телеграмма - 30 сообщений в секунду
-        await asyncio.sleep(0.25)
+            # Делаем паузу, чтобы уложиться в лимит телеграмма - 30 сообщений в секунду
+            await asyncio.sleep(0.25)
 
 
 loop = asyncio.get_event_loop()
