@@ -10,7 +10,7 @@ def add_new_user(user_id, user_name):
     cur = con.cursor()
     cur.execute("SELECT id FROM tbl_users WHERE id = ?", (user_id,))
 
-    if not(user_id,) in cur.fetchall():
+    if not (user_id,) in cur.fetchall():
         con = lite.connect(data_users)
         cur = con.cursor()
 
@@ -59,27 +59,6 @@ def get_all_user_parameters(user_id):
     return user_info[0]
 
 
-def get_all_users_info():
-    """Возвращает информацию о всех пользователях"""
-    con = lite.connect(data_users)
-    cur = con.cursor()
-    cur.execute("SELECT * FROM tbl_users")
-    users_info = cur.fetchall()
-    cur.close()
-    con.close()
-    return users_info
-
-
-def delete_user_info(user_id):
-    """Удаляет пользователя из базы"""
-    con = lite.connect(data_users)
-    cur = con.cursor()
-    cur.execute("DELETE FROM tbl_users WHERE user_id = ?", (user_id,))
-    con.commit()
-    cur.close()
-    con.close()
-
-
 def get_all_user_info(user_id):
     """Возвращает сообщение с информацией о настройках пользователя"""
     user_info = get_all_user_parameters(user_id)
@@ -100,3 +79,24 @@ def get_all_user_info(user_id):
         message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Нет</b>'
 
     return message
+
+
+def get_all_users_info():
+    """Возвращает информацию о всех пользователях"""
+    con = lite.connect(data_users)
+    cur = con.cursor()
+    cur.execute("SELECT * FROM tbl_users")
+    users_info = cur.fetchall()
+    cur.close()
+    con.close()
+    return users_info
+
+
+def delete_user_info(user_id):
+    """Удаляет пользователя из базы"""
+    con = lite.connect(data_users)
+    cur = con.cursor()
+    cur.execute("DELETE FROM tbl_users WHERE user_id = ?", (user_id,))
+    con.commit()
+    cur.close()
+    con.close()

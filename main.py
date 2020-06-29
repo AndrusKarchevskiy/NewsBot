@@ -1,14 +1,14 @@
 import logging
 
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.utils.markdown import quote_html
+from apscheduler.triggers.cron import CronTrigger
 
 from pyowm import OWM  # API для работы с погодой
 from newsapi import NewsApiClient  # API для работы с новостями
 
-import time
-
-import aiocron
 import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data import db  # Модуль для работы с базой данных
 
@@ -18,13 +18,19 @@ from settings.api import get_news, get_weather  # Модуль, который �
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
 from settings.changer_params import change_time, change_city, change_news_topic, change_status
 
+# Включаем логгирование
 logging.basicConfig(level=logging.INFO)
 
 owm = OWM(keys.OWM_TOKEN, language='ru')
 news_api = NewsApiClient(api_key=keys.NEWS_TOKEN)
 
+# Инициализируем бота и диспетчер
 bot = Bot(token=keys.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
+
+# Инициализируем, запускаем apscheduler (нужен для регулярной рассылки погоды и новостей)
+scheduler = AsyncIOScheduler()
+scheduler.start()
 
 
 @dp.message_handler(commands=['start'])
@@ -34,7 +40,7 @@ async def send_welcome(message: types.Message):
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    await message.reply('<b>🤝Здравствуйте, {0.first_name}🤝!</b>'.format(message.from_user))
+    await message.reply(f'<b>🤝Здравствуйте, {quote_html(message.from_user.first_name)}🤝!</b>')
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
@@ -55,7 +61,7 @@ async def show_information(message: types.Message):
     await message.answer(template_messages.information_message)
 
 
-@dp.message_handler(regexp='🌤Погода')
+@dp.message_handler(text='🌤Погода')
 async def send_weather(message: types.Message):
     """Отправляет погоду по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -74,11 +80,11 @@ async def send_weather(message: types.Message):
 
     except Exception as error:
         print(error)
-        await message.answer('🤔К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
-                             'повторите попытку')
+        await message.answer('К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
+                             'повторите попытку🤔')
 
 
-@dp.message_handler(regexp='🧐Новости')
+@dp.message_handler(text='🧐Новости')
 async def send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -105,7 +111,7 @@ async def send_news(message: types.Message):
         # найдено -> выход из цикла
         if '/set_news_topic' in news:
             break
-        time.sleep(1)
+        await asyncio.sleep(1)
         news_number += 1
 
 
@@ -121,7 +127,7 @@ async def set_time(message: types.Message):
     db.change_user_parameter(user_id, section, parameter)
 
     if message.text == '/set_time':
-        await message.answer('Введите время (по МСК), в которое вы каждый день будете получать '
+        await message.answer('Введите время <b>(по МСК)</b>, в которое вы каждый день будете получать '
                              'новости и сводку погоды. Формат: <b>ЧЧ:ММ</b>. Примеры: '
                              '<b>08:20</b>, <b>22:05</b>')
 
@@ -349,44 +355,50 @@ def get_user_params(user):
               'status': user[6]
               }
     return params
-    
 
-@aiocron.crontab('* * * * *')
-async def thread_get_all_users():
+
+async def regular_sending(user_params):
+    """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
+    # Работа с новостями
+    for news_number in range(0, user_params['quantity_news']):
+        news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
+        await bot.send_message(user_params['id'], news_message)
+
+        # Если команда "/set_news_topic" в news_message - значит, было отправлено сообщение о том, что больше
+        # новостей не найдено -> выход из цикла
+        if '/set_news_topic' in news_message:
+            break
+
+    # Работа с погодой
+    weather_message = get_weather(user_params['city'])
+    await bot.send_message(user_params['id'], weather_message)
+
+
+@scheduler.scheduled_job('cron', id='thread_minute_control', second='0')
+async def threading_control():
     # Получаем список кортежей со всеми пользователями
     all_users = db.get_all_users_info()
 
     for user in all_users:
+        print(user)
         # Получаем словарь для более удобной работы
         user_params = get_user_params(user)
 
-        user_hours_minutes = user_params['send_time'].split(':')
-        hours = user_hours_minutes[0]
-        minutes = user_hours_minutes[1]
+        # Проверяем, активна ли подписка пользователя
+        if user_params['status'] == 1:
+            # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который забанил бота
+            user_hours_minutes = user_params['send_time'].split(':')
+            hours = int(user_hours_minutes[0])
+            minutes = int(user_hours_minutes[1])
+            try:
+                scheduler.remove_job(job_id=str(user_params['id']))
+            except:
+                pass
+            scheduler.add_job(regular_sending, CronTrigger.from_crontab(f'{minutes} {hours} * * *'),
+                              args=(user_params,), id=str(user_params['id']))
 
-        @aiocron.crontab(f'{minutes} {hours} * * *')
-        async def regular_sending():
-            """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
-            # Работа с новостями
-            news_number = 0
-            while news_number < user_params['quantity_news']:
-                news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
-                await bot.send_message(user_params['id'], news_message)
-                print(news_message)
-
-                # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше
-                # новостей не найдено -> выход из цикла
-                if '/set_news_topic' in news_message:
-                    break
-                time.sleep(1)
-                news_number += 1
-
-                # Работа с погодой
-                weather_message = get_weather(user_params['city'])
-                await bot.send_message(user_params['id'], weather_message)
-                print(weather_message)
-
-        await asyncio.sleep(0.1)
+        # Делаем паузу, чтобы уложиться в лимит телеграмма - 30 сообщений в секунду
+        await asyncio.sleep(0.25)
 
 
 loop = asyncio.get_event_loop()
