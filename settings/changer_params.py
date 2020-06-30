@@ -11,7 +11,7 @@ from data import db  # Модуль для работы с базой данны
 
 
 owm = OWM(config.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
+news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 
 
 def change_time(user_id, new_time):
@@ -27,8 +27,7 @@ def change_time(user_id, new_time):
         db.change_user_parameter(user_id, section, parameter)
         message += f'✔Время <b>{new_time}</b> успешно установлено!😃'
 
-    except Exception as error:
-        print(error)
+    except Exception:
         message = template_messages.not_correct_param
 
     return message
@@ -39,6 +38,7 @@ def change_city(user_id, new_city):
     Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
     try:
         new_city = new_city.title()
+
         owm.weather_at_place(new_city)  # Пробуем получить данные из региона, введённого пользователем
 
         section = 'city'
@@ -50,8 +50,7 @@ def change_city(user_id, new_city):
 
         message += f'✔Город <b>{new_city}</b> успешно установлен!😃'
 
-    except Exception as error:
-        print(error)
+    except Exception:
         message = template_messages.not_correct_param
 
     return message

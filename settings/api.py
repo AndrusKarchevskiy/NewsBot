@@ -8,7 +8,14 @@ from settings import config  # Модуль, в котором хранятся 
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
 
 owm = OWM(config.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
+
+# У news api ограничение - 500 запросов в день. Есть 2 токена, в чётные часы используется один, в нечётные - другой
+if int(datetime.today().strftime('%H')) % 2 == 0:
+    news_api_key_index = 0
+else:
+    news_api_key_index = 1
+
+news_api = NewsApiClient(api_key=config.NEWS_TOKEN[news_api_key_index])
 
 
 def get_weather(city):

@@ -5,6 +5,7 @@ from aiogram.utils.markdown import quote_html
 from apscheduler.triggers.cron import CronTrigger
 
 from pyowm import OWM  # API для работы с погодой
+from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
 from newsapi import NewsApiClient  # API для работы с новостями
 
 import asyncio
@@ -12,7 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data import db  # Модуль для работы с базой данных
 
-from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
+from settings import config  # Модуль, в котором хранятся Токены от API, "секретная" информация
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
 from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
@@ -78,7 +79,7 @@ async def send_weather(message: types.Message):
         weather = get_weather(city)
         await message.answer(weather)
 
-    except Exception:
+    except api_response_error.NotFoundError:
         await message.answer('К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
                              'повторите попытку🤔')
 
@@ -338,7 +339,7 @@ async def message_control(message: types.Message):
     try:
         await globals()[command](message)
 
-    except Exception:
+    except KeyError:
         await message.answer(template_messages.not_correct_message)
 
 
@@ -381,17 +382,17 @@ async def threading_control():
         # Получаем словарь для более удобной работы
         user_params = get_user_params(user)
 
+        try:
+            scheduler.remove_job(job_id=str(user_params['id']))
+        except KeyError:
+            pass
+
         # Проверяем, активна ли подписка пользователя
         if user_params['status'] == 1:
             # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который забанил бота
             user_hours_minutes = user_params['send_time'].split(':')
             hours = int(user_hours_minutes[0])
             minutes = int(user_hours_minutes[1])
-
-            try:
-                scheduler.remove_job(job_id=str(user_params['id']))
-            except:
-                pass
 
             scheduler.add_job(regular_sending, CronTrigger.from_crontab(f'{minutes} {hours} * * *'),
                               args=(user_params,), id=str(user_params['id']))
