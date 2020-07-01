@@ -1,5 +1,6 @@
 import logging
 
+import apscheduler
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.markdown import quote_html
 from apscheduler.triggers.cron import CronTrigger
@@ -81,7 +82,7 @@ async def send_weather(message: types.Message):
 
     except api_response_error.NotFoundError:
         await message.answer('К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
-                             'повторите попытку🤔')
+                             'повтори попытку🤔')
 
 
 @dp.message_handler(text='🧐Новости')
@@ -127,7 +128,7 @@ async def set_time(message: types.Message):
     db.change_user_parameter(user_id, section, parameter)
 
     if message.text == '/set_time':
-        await message.answer('Введите время <b>(по МСК)</b>, в которое вы каждый день будете получать '
+        await message.answer('Введи время <b>(по МСК)</b>, в которое каждый день будешь получать '
                              'новости и сводку погоды. Формат: <b>ЧЧ:ММ</b>. Примеры: '
                              '<b>08:20</b>, <b>22:05</b>')
 
@@ -149,7 +150,7 @@ async def set_city(message: types.Message):
     db.change_user_parameter(user_id, section, parameter)
 
     if message.text == '/set_city':
-        await message.answer('Введите город, из которого хотите получать сводку погоды.\nПримеры: '
+        await message.answer('Введи город, из которого хочешь получать сводку погоды.\nПримеры: '
                              '<b>Санкт-Петербург</b>, <b>Киев</b>, <b>Брянск</b>')
 
     else:
@@ -170,9 +171,9 @@ async def set_news_topic(message: types.Message):
     db.change_user_parameter(user_id, section, parameter)
 
     if message.text == '/set_news_topic':
-        await message.answer('Введите ключевое слово (фразу), по которому(ой) вы будете получать новости.\n'
+        await message.answer('Введите ключевое слово (фразу), по которому(ой) ты будешь получать новости.\n'
                              'Примеры: <b>Apple</b>, <b>Бизнес</b>, <b>Илон Маск</b>\n\n'
-                             '<b>P.S.</b> <i>Если вы хотите получать самые актуальные зарубежные новости, введите '
+                             '<b>P.S.</b> <i>Если хочешь получать самые актуальные зарубежные новости, введи '
                              'ключевое слово (фразу) на иностранном языке</i>')
 
     else:
@@ -191,13 +192,16 @@ async def reset_settings(message: types.Message):
     parameter = 'reset'
     db.change_user_parameter(user_id, section, parameter)
 
+    time_registered = db.get_user_parameter(user_id, 'time_registered')
+
     db.delete_user_info(user_id)
     await message.answer('✔<i>Старые настройки успешно удалены!</i>\n'
                          '✔<i>Новые настройки успешно установлены!</i>\n\n'
-                         '<b>Теперь, вы будете ежедневно получать одну новость по ключевому слову "Россия" '
+                         '<b>Теперь, ты будешь ежедневно получать одну новость по ключевому слову "Россия" '
                          'и погоду из Москвы в 08:00 по МСК</b>')
 
     db.add_new_user(user_id, user_name)
+    db.change_user_parameter(user_id, 'time_registered', time_registered)
 
 
 @dp.message_handler(commands='set_status')
@@ -239,8 +243,8 @@ async def set_quantity_news_buttons(message: types.Message):
         ]
     )
 
-    await message.answer('Выберете количество новостей, которое будете получать. Если вы передумали изменять значение, '
-                         'нажмите на кнопку <b>Отмена</b>', reply_markup=markup)
+    await message.answer('Выбери количество новостей, которое будешь получать. Если не хочешь изменять значение, '
+                         'нажми на кнопку <b>Отмена</b>', reply_markup=markup)
 
 
 @dp.callback_query_handler(text_contains='news_')
@@ -261,7 +265,7 @@ async def change_quantity_news(call: types.CallbackQuery):
         parameter = callback_data
         db.change_user_parameter(user_id, section, parameter)
 
-        message_to_user += f'✔Теперь, вы будете получать новости в количестве <b>{callback_data}</b> за раз!'
+        message_to_user += f'✔Теперь, ты будете получать новости в количестве <b>{callback_data}</b> за раз!'
         await call.message.answer(message_to_user)
 
     else:
@@ -289,10 +293,11 @@ async def donate_buttons(message: types.Message):
         ]
     )
 
-    await message.answer('Выберите способ оплаты. Если вы хотите поддержать проект через <b>QIWI</b>, '
-                         'после перевода средств нажмите <b>Отмена</b>, иначе кнопки не пропадут')
-    await message.answer('<b>Если вы действительно хотите задонатить, пожалуйста, укажите в сообщении ваш телеграмм, '
-                         'чтобы создатель бота смог написать и поблагодарить вас😉</b>', reply_markup=markup)
+    await message.answer('Выбери способ оплаты. Если хочешь поддержать проект через <b>QIWI</b>, '
+                         'после перевода средств нажми <b>Отмена</b>, иначе кнопки не пропадут')
+    await message.answer('<b>Если действительно хочешь задонатить, пожалуйста, укажи в сообщении с донатом ссылку '
+                         'на свой телеграмм-аккаунт, чтобы создатель бота смог написать и поблагодарить '
+                         'тебя😉</b>', reply_markup=markup)
 
 
 @dp.callback_query_handler(text_contains='donate_')
@@ -319,8 +324,8 @@ async def check_params(message: types.Message):
     db.add_new_user(user_id, user_name)
 
     user_params = db.get_all_user_info(user_id)
-    await message.answer(f'Отправляю ваши текущие настройки:\n\n{user_params}\n\nЕсли вы хотите изменить что-либо, '
-                         f'воспользуйтесь остальными командами!😃')
+    await message.answer(f'Отправляю твои текущие настройки:\n\n{user_params}\n\nЕсли хочешь изменить что-либо, '
+                         f'воспользуйся остальными командами!😃')
 
 
 @dp.message_handler()
@@ -380,23 +385,50 @@ async def threading_control():
         # Получаем словарь для более удобной работы
         user_params = get_user_params(user)
 
-        try:
-            scheduler.remove_job(job_id=str(user_params['id']))
-        except KeyError:
-            pass
+        # Проверяем, деактивирована ли подписка пользователя
+        if user_params['status'] == 0:
+            try:
+                scheduler.remove_job(job_id=str(user_params['id']))
+            except:
+                pass
 
-        # Проверяем, активна ли подписка пользователя
-        if user_params['status'] == 1:
-            # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который забанил бота
-            user_hours_minutes = user_params['send_time'].split(':')
-            hours = int(user_hours_minutes[0])
-            minutes = int(user_hours_minutes[1])
+        # Сюда попадаем, если пользователь подписан на рассылку
+        else:
+            # Получаем объект cron
+            cron_obj = scheduler.get_job(job_id=str(user_params['id']))
+            # Получаем время пользователя из объекта крона
 
-            scheduler.add_job(regular_sending, CronTrigger.from_crontab(f'{minutes} {hours} * * *'),
-                              args=(user_params,), id=str(user_params['id']))
+            from_db_time = user_params['send_time'].split(':')
+            from_db_hours = int(from_db_time[0])
+            from_db_minutes = int(from_db_time[1])
 
-            # Делаем паузу, чтобы уложиться в лимит телеграмма - 30 сообщений в секунду
-            await asyncio.sleep(0.25)
+            if cron_obj is None:
+                # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
+                # забанил бота
+                try:
+                    scheduler.add_job(regular_sending,
+                                      CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
+                                      args=(user_params,), id=str(user_params['id']))
+                except:
+                    pass
+
+            else:
+                schedule_time = cron_obj.next_run_time.strftime('%H:%M')
+                schedule_time = str(schedule_time).split(':')
+                schedule_hours = int(schedule_time[0])
+                schedule_minutes = int(schedule_time[1])
+
+                # Проверяем, изменил ли пользователь настройки
+                if schedule_hours != from_db_hours or schedule_minutes != from_db_minutes:
+                    # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
+                    # забанил бота
+                    try:
+                        scheduler.remove_job(str(user_params['id']))
+                        scheduler.add_job(regular_sending,
+                                          CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
+                                          args=(user_params,), id=str(user_params['id']))
+                    except:
+                        pass
 
 
 loop = asyncio.get_event_loop()

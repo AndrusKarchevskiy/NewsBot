@@ -32,8 +32,6 @@ def get_weather(city):
                   f'{template_messages.weather_emoji[detailed_status]}'
     else:
         message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>'
-    message += '\n<i>(P.S. В городах с населением менее миллиона, могут быть неточности с определением этого статуса, '\
-               'не серчайте😉. Остальная информация - точная)</i>'
 
     message += f'\n\n' \
                f'🌡Температура: <b>{temp} градус(ов)</b>\n' \
@@ -52,7 +50,6 @@ def get_news(news_topic, quantity_news, news_number):
                                            from_param=today,
                                            to=today,
                                            sort_by='relevancy')
-
     max_news = 5
     if len(all_articles["articles"]) < max_news:
         yesterday = datetime.now() - timedelta(days=1)
@@ -67,9 +64,9 @@ def get_news(news_topic, quantity_news, news_number):
         time_published = all_articles["articles"][news_number]["publishedAt"]
         time_published = parse(time_published)
 
-        message = f'<b>Дата публикации: ' \
-                  f'{time_published.strftime("%d.%m.%Y")}</b>\n' \
-                  f'✔{all_articles["articles"][news_number]["url"]}'
+        message = f'✔<b>Дата публикации: </b><i>{time_published.strftime("%d.%m.%Y")}</i>\n' \
+                  f'✔<b>Заголовок: </b><i>{all_articles["articles"][news_number]["title"]}</i>\n' \
+                  f'✔<b>Ссылка: </b><i>{all_articles["articles"][news_number]["url"]}</i>'
 
     except IndexError:
         if news_number > 0:
