@@ -50,6 +50,7 @@ def get_news(news_topic, quantity_news, news_number):
                                            from_param=today,
                                            to=today,
                                            sort_by='relevancy')
+
     max_news = 5
     if len(all_articles["articles"]) < max_news:
         yesterday = datetime.now() - timedelta(days=1)
@@ -64,8 +65,8 @@ def get_news(news_topic, quantity_news, news_number):
         time_published = all_articles["articles"][news_number]["publishedAt"]
         time_published = parse(time_published)
 
-        message = f'✔<b>Дата публикации: </b><i>{time_published.strftime("%d.%m.%Y")}</i>\n' \
-                  f'✔<b>Заголовок: </b><i>{all_articles["articles"][news_number]["title"]}</i>\n' \
+        message = f'✔<b>Дата публикации: </b><i>{time_published.strftime("%d.%m.%Y")}</i>\n\n' \
+                  f'✔<b>Заголовок: </b><i>{all_articles["articles"][news_number]["title"]}</i>\n\n' \
                   f'✔<b>Ссылка: </b><i>{all_articles["articles"][news_number]["url"]}</i>'
 
     except IndexError:

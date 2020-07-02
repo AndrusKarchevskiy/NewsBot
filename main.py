@@ -48,7 +48,6 @@ async def send_welcome(message: types.Message):
 
     item1 = types.KeyboardButton('🧐Новости')
     item2 = types.KeyboardButton('🌤Погода')
-
     markup.add(item1, item2)
     await message.answer(template_messages.welcome_message, reply_markup=markup)
 
