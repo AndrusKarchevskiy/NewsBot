@@ -1,16 +1,18 @@
 import logging
 
-import apscheduler
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.markdown import quote_html
-from apscheduler.triggers.cron import CronTrigger
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils.exceptions import Throttled
 
 from pyowm import OWM  # API для работы с погодой
 from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
 from newsapi import NewsApiClient  # API для работы с новостями
 
 import asyncio
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from data import db  # Модуль для работы с базой данных
 
@@ -26,9 +28,10 @@ logging.basicConfig(level=logging.INFO)
 owm = OWM(config.OWM_TOKEN, language='ru')
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
 
-# Инициализируем бота и диспетчер
+# Инициализируем бота
 bot = Bot(token=config.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 # Инициализируем, запускаем apscheduler (нужен для регулярной рассылки погоды и новостей)
 scheduler = AsyncIOScheduler()
@@ -36,6 +39,7 @@ scheduler.start()
 
 
 @dp.message_handler(commands=['start'])
+@dp.throttled(rate=3)
 async def send_welcome(message: types.Message):
     """Выводит приветственное соощение пользователю, активирует 'reply' клавиатуру"""
     user_id = message.from_user.id
@@ -53,6 +57,7 @@ async def send_welcome(message: types.Message):
 
 
 @dp.message_handler(commands=['help'])
+@dp.throttled(rate=3)
 async def show_information(message: types.Message):
     """Отправляет информацию о боте пользователю"""
     user_id = message.from_user.id
@@ -63,6 +68,7 @@ async def show_information(message: types.Message):
 
 
 @dp.message_handler(text='🌤Погода')
+@dp.throttled(rate=3)
 async def send_weather(message: types.Message):
     """Отправляет погоду по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -85,6 +91,7 @@ async def send_weather(message: types.Message):
 
 
 @dp.message_handler(text='🧐Новости')
+@dp.throttled(rate=3)
 async def send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -116,6 +123,7 @@ async def send_news(message: types.Message):
 
 
 @dp.message_handler(commands='set_time')
+@dp.throttled(rate=3)
 async def set_time(message: types.Message):
     """Изменяет время регулярной отправки погоды и новостей"""
     user_id = message.from_user.id
@@ -138,6 +146,7 @@ async def set_time(message: types.Message):
 
 
 @dp.message_handler(commands='set_city')
+@dp.throttled(rate=3)
 async def set_city(message: types.Message):
     """Изменяет город, из которого пользователь будет получать сводку погоды"""
     user_id = message.from_user.id
@@ -159,6 +168,7 @@ async def set_city(message: types.Message):
 
 
 @dp.message_handler(commands='set_news_topic')
+@dp.throttled(rate=3)
 async def set_news_topic(message: types.Message):
     """Изменяет ключевое слово, по которому отбираются новости"""
     user_id = message.from_user.id
@@ -182,6 +192,7 @@ async def set_news_topic(message: types.Message):
 
 
 @dp.message_handler(commands='reset')
+@dp.throttled(rate=3)
 async def reset_settings(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -204,6 +215,7 @@ async def reset_settings(message: types.Message):
 
 
 @dp.message_handler(commands='set_status')
+@dp.throttled(rate=3)
 async def set_status(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -214,6 +226,7 @@ async def set_status(message: types.Message):
 
 
 @dp.message_handler(commands='set_quantity_news')
+@dp.throttled(rate=3)
 async def set_quantity_news_buttons(message: types.Message):
     """Изменяет количество новостей, которое будет получать пользователь"""
     user_id = message.from_user.id
@@ -247,6 +260,7 @@ async def set_quantity_news_buttons(message: types.Message):
 
 
 @dp.callback_query_handler(text_contains='news_')
+@dp.throttled(rate=3)
 async def change_quantity_news(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -274,6 +288,7 @@ async def change_quantity_news(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='donate')
+@dp.throttled(rate=3)
 async def donate_buttons(message: types.Message):
     """Отправлят кнопки"""
     user_id = message.from_user.id
@@ -300,6 +315,7 @@ async def donate_buttons(message: types.Message):
 
 
 @dp.callback_query_handler(text_contains='donate_')
+@dp.throttled(rate=3)
 async def donation(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -316,6 +332,7 @@ async def donation(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='check_params')
+@dp.throttled(rate=3)
 async def check_params(message: types.Message):
     """Отправляет текущие настройки пользователя"""
     user_id = message.from_user.id
@@ -328,6 +345,7 @@ async def check_params(message: types.Message):
 
 
 @dp.message_handler()
+@dp.throttled(rate=3)
 async def message_control(message: types.Message):
     """Обрабатывает все текстовые сообщения. В функциях, при вводе значений после ввода команды,
     значение отправляется обратно в нужную функцию, в которой обрабатывается"""
@@ -395,8 +413,8 @@ async def threading_control():
         else:
             # Получаем объект cron
             cron_obj = scheduler.get_job(job_id=str(user_params['id']))
-            # Получаем время пользователя из объекта крона
 
+            # Получаем время пользователя из объекта крона
             from_db_time = user_params['send_time'].split(':')
             from_db_hours = int(from_db_time[0])
             from_db_minutes = int(from_db_time[1])
