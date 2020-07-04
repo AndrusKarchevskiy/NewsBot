@@ -3,7 +3,6 @@ import logging
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.markdown import quote_html
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.utils.exceptions import Throttled
 
 from pyowm import OWM  # API для работы с погодой
 from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
@@ -39,7 +38,7 @@ scheduler.start()
 
 
 @dp.message_handler(commands=['start'])
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def send_welcome(message: types.Message):
     """Выводит приветственное соощение пользователю, активирует 'reply' клавиатуру"""
     user_id = message.from_user.id
@@ -57,7 +56,7 @@ async def send_welcome(message: types.Message):
 
 
 @dp.message_handler(commands=['help'])
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def show_information(message: types.Message):
     """Отправляет информацию о боте пользователю"""
     user_id = message.from_user.id
@@ -68,7 +67,7 @@ async def show_information(message: types.Message):
 
 
 @dp.message_handler(text='🌤Погода')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def send_weather(message: types.Message):
     """Отправляет погоду по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -91,7 +90,7 @@ async def send_weather(message: types.Message):
 
 
 @dp.message_handler(text='🧐Новости')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
@@ -123,7 +122,7 @@ async def send_news(message: types.Message):
 
 
 @dp.message_handler(commands='set_time')
-@dp.throttled(rate=3)
+@dp.throttled(rate=2)
 async def set_time(message: types.Message):
     """Изменяет время регулярной отправки погоды и новостей"""
     user_id = message.from_user.id
@@ -146,7 +145,7 @@ async def set_time(message: types.Message):
 
 
 @dp.message_handler(commands='set_city')
-@dp.throttled(rate=3)
+@dp.throttled(rate=2)
 async def set_city(message: types.Message):
     """Изменяет город, из которого пользователь будет получать сводку погоды"""
     user_id = message.from_user.id
@@ -168,7 +167,7 @@ async def set_city(message: types.Message):
 
 
 @dp.message_handler(commands='set_news_topic')
-@dp.throttled(rate=3)
+@dp.throttled(rate=2)
 async def set_news_topic(message: types.Message):
     """Изменяет ключевое слово, по которому отбираются новости"""
     user_id = message.from_user.id
@@ -192,7 +191,7 @@ async def set_news_topic(message: types.Message):
 
 
 @dp.message_handler(commands='reset')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def reset_settings(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -215,7 +214,7 @@ async def reset_settings(message: types.Message):
 
 
 @dp.message_handler(commands='set_status')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def set_status(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -226,7 +225,7 @@ async def set_status(message: types.Message):
 
 
 @dp.message_handler(commands='set_quantity_news')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def set_quantity_news_buttons(message: types.Message):
     """Изменяет количество новостей, которое будет получать пользователь"""
     user_id = message.from_user.id
@@ -260,7 +259,6 @@ async def set_quantity_news_buttons(message: types.Message):
 
 
 @dp.callback_query_handler(text_contains='news_')
-@dp.throttled(rate=3)
 async def change_quantity_news(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -288,7 +286,7 @@ async def change_quantity_news(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='donate')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def donate_buttons(message: types.Message):
     """Отправлят кнопки"""
     user_id = message.from_user.id
@@ -315,7 +313,6 @@ async def donate_buttons(message: types.Message):
 
 
 @dp.callback_query_handler(text_contains='donate_')
-@dp.throttled(rate=3)
 async def donation(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -332,7 +329,7 @@ async def donation(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='check_params')
-@dp.throttled(rate=3)
+@dp.throttled(rate=5)
 async def check_params(message: types.Message):
     """Отправляет текущие настройки пользователя"""
     user_id = message.from_user.id
@@ -345,7 +342,6 @@ async def check_params(message: types.Message):
 
 
 @dp.message_handler()
-@dp.throttled(rate=3)
 async def message_control(message: types.Message):
     """Обрабатывает все текстовые сообщения. В функциях, при вводе значений после ввода команды,
     значение отправляется обратно в нужную функцию, в которой обрабатывается"""
@@ -379,22 +375,27 @@ def get_user_params(user):
 async def regular_sending(user_params):
     """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
     # Работа с новостями
-    for news_number in range(0, user_params['quantity_news']):
-        news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
-        await bot.send_message(user_params['id'], news_message)
+    # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
+    # забанил бота
+    try:
+        for news_number in range(0, user_params['quantity_news']):
+            news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
+            await bot.send_message(user_params['id'], news_message)
 
-        # Если команда "/set_news_topic" в news_message - значит, было отправлено сообщение о том, что больше
-        # новостей не найдено -> выход из цикла
-        if '/set_news_topic' in news_message:
-            break
+            # Если команда "/set_news_topic" в news_message - значит, было отправлено сообщение о том, что больше
+            # новостей не найдено -> выход из цикла
+            if '/set_news_topic' in news_message:
+                break
 
-    # Работа с погодой
-    weather_message = get_weather(user_params['city'])
-    await bot.send_message(user_params['id'], weather_message)
+        # Работа с погодой
+        weather_message = get_weather(user_params['city'])
+        await bot.send_message(user_params['id'], weather_message)
+    except:
+        pass
 
 
 @scheduler.scheduled_job('cron', id='thread_minute_control', second='0')
-async def threading_control():
+async def users_sending_control():
     # Получаем список кортежей со всеми пользователями
     all_users = db.get_all_users_info()
 
@@ -404,10 +405,9 @@ async def threading_control():
 
         # Проверяем, деактивирована ли подписка пользователя
         if user_params['status'] == 0:
-            try:
+            cron_obj = scheduler.get_job(job_id=str(user_params['id']))
+            if cron_obj is not None:
                 scheduler.remove_job(job_id=str(user_params['id']))
-            except:
-                pass
 
         # Сюда попадаем, если пользователь подписан на рассылку
         else:
@@ -422,12 +422,9 @@ async def threading_control():
             if cron_obj is None:
                 # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
                 # забанил бота
-                try:
-                    scheduler.add_job(regular_sending,
-                                      CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
-                                      args=(user_params,), id=str(user_params['id']))
-                except:
-                    pass
+                scheduler.add_job(regular_sending,
+                                  CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
+                                  args=(user_params,), id=str(user_params['id']))
 
             else:
                 schedule_time = cron_obj.next_run_time.strftime('%H:%M')
@@ -437,15 +434,10 @@ async def threading_control():
 
                 # Проверяем, изменил ли пользователь настройки
                 if schedule_hours != from_db_hours or schedule_minutes != from_db_minutes:
-                    # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
-                    # забанил бота
-                    try:
-                        scheduler.remove_job(str(user_params['id']))
-                        scheduler.add_job(regular_sending,
-                                          CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
-                                          args=(user_params,), id=str(user_params['id']))
-                    except:
-                        pass
+                    scheduler.remove_job(str(user_params['id']))
+                    scheduler.add_job(regular_sending,
+                                      CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
+                                      args=(user_params,), id=str(user_params['id']))
 
 
 loop = asyncio.get_event_loop()

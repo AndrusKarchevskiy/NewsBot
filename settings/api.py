@@ -28,10 +28,10 @@ def get_weather(city):
     wind = str(w.get_wind()["speed"])
 
     if detailed_status in template_messages.weather_emoji:
-        message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>' \
+        message = f'В городе <b>{city}</b> в ближайшее время будет <b>{detailed_status}</b>' \
                   f'{template_messages.weather_emoji[detailed_status]}'
     else:
-        message = f'В городе <b>{city}</b> сейчас <b>{detailed_status}</b>'
+        message = f'В городе <b>{city}</b> в ближайшее время будет <b>{detailed_status}</b>'
 
     message += f'\n\n' \
                f'🌡Температура: <b>{temp} градус(ов)</b>\n' \

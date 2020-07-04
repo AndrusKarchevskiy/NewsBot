@@ -96,7 +96,7 @@ def delete_user_info(user_id):
     """Удаляет пользователя из базы"""
     con = lite.connect(data_users)
     cur = con.cursor()
-    cur.execute("DELETE FROM tbl_users WHERE user_id = ?", (user_id,))
+    cur.execute("DELETE FROM tbl_users WHERE id = ?", (user_id,))
     con.commit()
     cur.close()
     con.close()
