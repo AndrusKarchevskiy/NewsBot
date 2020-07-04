@@ -4,9 +4,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.markdown import quote_html
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from pyowm import OWM  # API для работы с погодой
 from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
-from newsapi import NewsApiClient  # API для работы с новостями
 
 import asyncio
 
@@ -23,9 +21,6 @@ from settings.changer_params import change_time, change_city, change_news_topic,
 
 # Включаем логгирование
 logging.basicConfig(level=logging.INFO)
-
-owm = OWM(config.OWM_TOKEN, language='ru')
-news_api = NewsApiClient(api_key=config.NEWS_TOKEN)
 
 # Инициализируем бота
 bot = Bot(token=config.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
@@ -390,6 +385,7 @@ async def regular_sending(user_params):
         # Работа с погодой
         weather_message = get_weather(user_params['city'])
         await bot.send_message(user_params['id'], weather_message)
+
     except:
         pass
 
