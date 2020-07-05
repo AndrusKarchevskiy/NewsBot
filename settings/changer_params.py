@@ -1,16 +1,16 @@
+from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
+from newsapi import NewsApiClient  # API для работы с новостями
+
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 
-from pyowm import OWM  # API для работы с погодой
-from newsapi import NewsApiClient  # API для работы с новостями
-
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
 from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
+from api import api  # Модуль для работы с API
 
 from data import db  # Модуль для работы с базой данных
 
 
-owm = OWM(config.OWM_TOKEN, language='ru')
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 
 
@@ -43,7 +43,7 @@ def change_city(user_id, new_city):
     try:
         new_city = new_city.title()
 
-        owm.weather_at_place(new_city)  # Пробуем получить данные из региона, введённого пользователем
+        api.get_weather(new_city)  # Пробуем получить данные из региона, введённого пользователем
 
         section = 'city'
         old_city = db.get_user_parameter(user_id, section)
@@ -60,7 +60,7 @@ def change_city(user_id, new_city):
 
             message += f'✔Город <b>{new_city}</b> успешно установлен!😃'
 
-    except Exception:
+    except api_response_error.NotFoundError:
         message = template_messages.not_correct_param
 
     return message

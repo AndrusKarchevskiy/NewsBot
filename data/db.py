@@ -1,6 +1,7 @@
 import sqlite3 as lite
 from datetime import datetime
 
+
 data_users = 'data\\data.db'
 
 
@@ -17,9 +18,9 @@ def add_new_user(user_id, user_name):
         today = datetime.now()
         today = today.strftime("%d.%m.%Y")
 
-        cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topic, quantity_news, status, progress, "
+        cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topic, quantity_news, status, "
                     "time_registered)"
-                    "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', 'started', ?)", (user_id, str(user_name),
+                    "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', ?)", (user_id, str(user_name),
                                                                                           str(today)))
         con.commit()
 

@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.dispatcher import FSMContext
 from aiogram.utils.markdown import quote_html
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
@@ -13,11 +14,15 @@ from apscheduler.triggers.cron import CronTrigger
 
 from data import db  # Модуль для работы с базой данных
 
+from states.params import Params
+
 from settings import config  # Модуль, в котором хранятся Токены от API, "секретная" информация
 from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
-from settings.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
 # Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
 from settings.changer_params import change_time, change_city, change_news_topic, change_status
+
+from api.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
+
 
 # Включаем логгирование
 logging.basicConfig(level=logging.INFO)
@@ -32,8 +37,8 @@ scheduler = AsyncIOScheduler()
 scheduler.start()
 
 
-@dp.message_handler(commands=['start'])
-@dp.throttled(rate=5)
+@dp.message_handler(commands='start')
+@dp.throttled(rate=3)
 async def send_welcome(message: types.Message):
     """Выводит приветственное соощение пользователю, активирует 'reply' клавиатуру"""
     user_id = message.from_user.id
@@ -50,8 +55,8 @@ async def send_welcome(message: types.Message):
     await message.answer(template_messages.welcome_message, reply_markup=markup)
 
 
-@dp.message_handler(commands=['help'])
-@dp.throttled(rate=5)
+@dp.message_handler(commands='help')
+@dp.throttled(rate=3)
 async def show_information(message: types.Message):
     """Отправляет информацию о боте пользователю"""
     user_id = message.from_user.id
@@ -62,16 +67,12 @@ async def show_information(message: types.Message):
 
 
 @dp.message_handler(text='🌤Погода')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def send_weather(message: types.Message):
     """Отправляет погоду по нажатию на кнопку"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
-
-    section = 'progress'
-    parameter = 'b_weather'
-    db.change_user_parameter(user_id, section, parameter)
 
     section = 'city'
     city = db.get_user_parameter(user_id, section)
@@ -85,16 +86,12 @@ async def send_weather(message: types.Message):
 
 
 @dp.message_handler(text='🧐Новости')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
-
-    section = 'progress'
-    parameter = 'b_news'
-    db.change_user_parameter(user_id, section, parameter)
 
     section = 'news_topic'
     news_topic = db.get_user_parameter(user_id, section)
@@ -117,84 +114,89 @@ async def send_news(message: types.Message):
 
 
 @dp.message_handler(commands='set_time')
-@dp.throttled(rate=2)
+@dp.throttled(rate=3)
 async def set_time(message: types.Message):
     """Изменяет время регулярной отправки погоды и новостей"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    section = 'progress'
-    parameter = 'set_time'
-    db.change_user_parameter(user_id, section, parameter)
+    await message.answer('Введи время <b>(по МСК)</b>, в которое каждый день будешь получать '
+                         'новости и сводку погоды. Формат: <b>ЧЧ:ММ</b>. Примеры: '
+                         '<b>08:20</b>, <b>22:05</b>')
 
-    if message.text == '/set_time':
-        await message.answer('Введи время <b>(по МСК)</b>, в которое каждый день будешь получать '
-                             'новости и сводку погоды. Формат: <b>ЧЧ:ММ</b>. Примеры: '
-                             '<b>08:20</b>, <b>22:05</b>')
+    await Params.SetTime.set()
 
-    else:
-        new_time = message.text
-        message_to_user = change_time(user_id, new_time)
-        await message.answer(message_to_user)
+
+@dp.message_handler(state=Params.SetTime)
+async def setting_time_handler(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    new_time = message.text
+
+    message_to_user = change_time(user_id, new_time)
+    await message.answer(message_to_user)
+
+    await state.finish()
 
 
 @dp.message_handler(commands='set_city')
-@dp.throttled(rate=2)
+@dp.throttled(rate=3)
 async def set_city(message: types.Message):
     """Изменяет город, из которого пользователь будет получать сводку погоды"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    section = 'progress'
-    parameter = 'set_city'
-    db.change_user_parameter(user_id, section, parameter)
+    await message.answer('Введи город, из которого хочешь получать сводку погоды.\nПримеры: '
+                         '<b>Санкт-Петербург</b>, <b>Киев</b>, <b>Брянск</b>')
 
-    if message.text == '/set_city':
-        await message.answer('Введи город, из которого хочешь получать сводку погоды.\nПримеры: '
-                             '<b>Санкт-Петербург</b>, <b>Киев</b>, <b>Брянск</b>')
+    await Params.SetCity.set()
 
-    else:
-        new_city = message.text
-        message_to_user = change_city(user_id, new_city)
-        await message.answer(message_to_user)
+
+@dp.message_handler(state=Params.SetCity)
+async def setting_city_handler(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+
+    new_city = message.text
+    message_to_user = change_city(user_id, new_city)
+    await message.answer(message_to_user)
+
+    await state.finish()
 
 
 @dp.message_handler(commands='set_news_topic')
-@dp.throttled(rate=2)
+@dp.throttled(rate=3)
 async def set_news_topic(message: types.Message):
     """Изменяет ключевое слово, по которому отбираются новости"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    section = 'progress'
-    parameter = 'set_news_topic'
-    db.change_user_parameter(user_id, section, parameter)
+    await message.answer('Введите ключевое слово (фразу), по которому(ой) ты будешь получать новости.\n'
+                         'Примеры: <b>Apple</b>, <b>Бизнес</b>, <b>Павел Дуров</b>\n\n'
+                         '<b>P.S.</b> <i>Если хочешь получать самые актуальные зарубежные новости, введи '
+                         'ключевое слово (фразу) на иностранном языке</i>')
 
-    if message.text == '/set_news_topic':
-        await message.answer('Введите ключевое слово (фразу), по которому(ой) ты будешь получать новости.\n'
-                             'Примеры: <b>Apple</b>, <b>Бизнес</b>, <b>Илон Маск</b>\n\n'
-                             '<b>P.S.</b> <i>Если хочешь получать самые актуальные зарубежные новости, введи '
-                             'ключевое слово (фразу) на иностранном языке</i>')
+    await Params.SetNewsTopic.set()
 
-    else:
-        new_news_topic = message.text
-        message_to_user = change_news_topic(user_id, new_news_topic)
-        await message.answer(message_to_user)
+
+@dp.message_handler(state=Params.SetNewsTopic)
+async def setting_news_topic_handler(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+
+    new_news_topic = message.text
+    message_to_user = change_news_topic(user_id, new_news_topic)
+    await message.answer(message_to_user)
+
+    await state.finish()
 
 
 @dp.message_handler(commands='reset')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def reset_settings(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
-
-    section = 'progress'
-    parameter = 'reset'
-    db.change_user_parameter(user_id, section, parameter)
 
     time_registered = db.get_user_parameter(user_id, 'time_registered')
 
@@ -209,7 +211,7 @@ async def reset_settings(message: types.Message):
 
 
 @dp.message_handler(commands='set_status')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def set_status(message: types.Message):
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
@@ -220,17 +222,12 @@ async def set_status(message: types.Message):
 
 
 @dp.message_handler(commands='set_quantity_news')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def set_quantity_news_buttons(message: types.Message):
     """Изменяет количество новостей, которое будет получать пользователь"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
-
     db.add_new_user(user_id, user_name)
-
-    section = 'progress'
-    parameter = 'set_quantity_news'
-    db.change_user_parameter(user_id, section, parameter)
 
     markup = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -281,16 +278,12 @@ async def change_quantity_news(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='donate')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def donate_buttons(message: types.Message):
     """Отправлят кнопки"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
-
-    section = 'progress'
-    parameter = 'donate'
-    db.change_user_parameter(user_id, section, parameter)
 
     markup = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -324,7 +317,7 @@ async def donation(call: types.CallbackQuery):
 
 
 @dp.message_handler(commands='check_params')
-@dp.throttled(rate=5)
+@dp.throttled(rate=3)
 async def check_params(message: types.Message):
     """Отправляет текущие настройки пользователя"""
     user_id = message.from_user.id
@@ -338,36 +331,28 @@ async def check_params(message: types.Message):
 
 @dp.message_handler()
 async def message_control(message: types.Message):
-    """Обрабатывает все текстовые сообщения. В функциях, при вводе значений после ввода команды,
-    значение отправляется обратно в нужную функцию, в которой обрабатывается"""
+    """Возвращает сообщение о неправильном вводе информации"""
     user_id = message.from_user.id
     user_name = str(message.from_user.full_name)
     db.add_new_user(user_id, user_name)
 
-    section = 'progress'
-    command = db.get_user_parameter(user_id, section)
-
-    try:
-        await globals()[command](message)
-
-    except KeyError:
-        await message.answer(template_messages.not_correct_message)
+    await message.answer(template_messages.not_correct_message)
 
 
 def get_user_params(user):
     """Возвращает словарь с данными о пользователе"""
-    params = {'id': user[0],
-              'name': user[1],
-              'send_time': user[2],
-              'city': user[3],
-              'news_topic': user[4],
-              'quantity_news': user[5],
-              'status': user[6]
-              }
-    return params
+    user_params = {'id': user[0],
+                   'name': user[1],
+                   'send_time': user[2],
+                   'city': user[3],
+                   'news_topic': user[4],
+                   'quantity_news': user[5],
+                   'status': user[6]
+                   }
+    return user_params
 
 
-async def regular_sending(user_params):
+async def user_regular_sending(user_params):
     """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
     # Работа с новостями
     # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
@@ -390,7 +375,7 @@ async def regular_sending(user_params):
         pass
 
 
-@scheduler.scheduled_job('cron', id='thread_minute_control', second='0')
+@scheduler.scheduled_job('cron', id='users_sending_control', second='0')
 async def users_sending_control():
     # Получаем список кортежей со всеми пользователями
     all_users = db.get_all_users_info()
@@ -418,7 +403,7 @@ async def users_sending_control():
             if cron_obj is None:
                 # Блок try нужен для того, чтобы бот не ломался при попытке отправке инфы пользователю, который
                 # забанил бота
-                scheduler.add_job(regular_sending,
+                scheduler.add_job(user_regular_sending,
                                   CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
                                   args=(user_params,), id=str(user_params['id']))
 
@@ -431,7 +416,7 @@ async def users_sending_control():
                 # Проверяем, изменил ли пользователь настройки
                 if schedule_hours != from_db_hours or schedule_minutes != from_db_minutes:
                     scheduler.remove_job(str(user_params['id']))
-                    scheduler.add_job(regular_sending,
+                    scheduler.add_job(user_regular_sending,
                                       CronTrigger.from_crontab(f'{from_db_minutes} {from_db_hours} * * *'),
                                       args=(user_params,), id=str(user_params['id']))
 
