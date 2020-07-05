@@ -20,8 +20,7 @@ def add_new_user(user_id, user_name):
 
         cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topic, quantity_news, status, "
                     "time_registered)"
-                    "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', ?)", (user_id, str(user_name),
-                                                                                          str(today)))
+                    "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', ?)", (user_id, str(user_name), str(today)))
         con.commit()
 
     cur.close()
@@ -69,15 +68,15 @@ def get_all_user_info(user_id):
     user_quantity_news = user_info[5]
     user_status = user_info[6]
 
-    message = f'✔Время, в которое вы получаете новости и погоду: <b>{user_send_time}</b>\n' \
-              f'✔Город, из которого вы получате сводку погоды: <b>{user_city}</b>\n' \
-              f'✔Ключевое слово (фраза), по которой вы получаете новости: <b>{user_news_topic}</b>\n' \
-              f'✔Количество новостей, которое вы получаете: <b>{user_quantity_news}</b>\n'
+    message = f'✔Время, в которое ты получаешь новости и погоду: <b>{user_send_time}</b>\n' \
+              f'✔Город, из которого ты получаешь сводку погоды: <b>{user_city}</b>\n' \
+              f'✔Ключевое слово (фраза), по которой ты получаешь новости: <b>{user_news_topic}</b>\n' \
+              f'✔Количество новостей, которое ты получаешь: <b>{user_quantity_news}</b>\n'
 
     if user_status == 1:
-        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Да</b>'
+        message += '✔Активна ли твоя подписка на рыссылку погоды и новостей? -- <b>Активна</b>'
     else:
-        message += '✔Активна ли ваша подписка (получаете ли вы регулярную рассылку погоды и новостей): <b>Нет</b>'
+        message += '✔Активна ли твоя подписка на рыссылку погоды и новостей? -- <b>Не активна</b>'
 
     return message
 
