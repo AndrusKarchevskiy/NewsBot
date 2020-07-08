@@ -5,15 +5,35 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse
 
 from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
-from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
+from settings.user_settings import private_chat_template_messages as private_tmp_msg
 
 owm = OWM(config.OWM_TOKEN, language='ru')
 
-# У news api ограничение - 500 запросов в день. Есть 2 токена, в чётные часы используется один, в нечётные - другой
-if int(datetime.today().strftime('%H')) % 2 == 0:
-    news_api_key_index = 0
-else:
+# У news api ограничение - 500 запросов в день. Есть несколько токенов, которые используются в разное время
+hours = int(datetime.today().strftime('%H'))
+
+if 0 <= hours <= 3:
     news_api_key_index = 1
+elif 4 <= hours <= 6:
+    news_api_key_index = 2
+elif hours == 7:
+    news_api_key_index = 3
+elif hours == 8:
+    news_api_key_index = 4
+elif hours == 9:
+    news_api_key_index = 5
+elif 10 <= hours <= 11:
+    news_api_key_index = 6
+elif 12 <= hours <= 13:
+    news_api_key_index = 7
+elif 14 <= hours <= 15:
+    news_api_key_index = 8
+elif 16 <= hours <= 17:
+    news_api_key_index = 9
+elif 18 <= hours <= 20:
+    news_api_key_index = 10
+else:
+    news_api_key_index = 11
 
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[news_api_key_index])
 
@@ -27,9 +47,9 @@ def get_weather(city):
     humidity = str(w.get_humidity())
     wind = str(w.get_wind()["speed"])
 
-    if detailed_status in template_messages.weather_emoji:
+    if detailed_status in private_tmp_msg.weather_emoji:
         message = f'В городе <b>{city}</b> в ближайшее время будет <b>{detailed_status}</b>' \
-                  f'{template_messages.weather_emoji[detailed_status]}'
+                  f'{private_tmp_msg.weather_emoji[detailed_status]}'
     else:
         message = f'В городе <b>{city}</b> в ближайшее время будет <b>{detailed_status}</b>'
 

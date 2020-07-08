@@ -4,7 +4,7 @@ from newsapi import NewsApiClient  # API для работы с новостям
 from datetime import datetime, timedelta
 from dateutil.parser import parse
 
-from settings import template_messages  # Модуль, в котором хранятся большие, повторяющиеся сообщения
+from settings.user_settings import private_chat_template_messages as private_tmp_msg
 from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
 from api import api  # Модуль для работы с API
 
@@ -32,7 +32,7 @@ def change_time(user_id, new_time):
             message += f'✔Время <b>{new_time}</b> успешно установлено!😃'
 
     except Exception:
-        message = template_messages.not_correct_param
+        message = private_tmp_msg.not_correct_param
 
     return message
 
@@ -61,7 +61,7 @@ def change_city(user_id, new_city):
             message += f'✔Город <b>{new_city}</b> успешно установлен!😃'
 
     except api_response_error.NotFoundError:
-        message = template_messages.not_correct_param
+        message = private_tmp_msg.not_correct_param
 
     return message
 
