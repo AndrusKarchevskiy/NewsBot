@@ -89,19 +89,18 @@ async def user_send_weather(message: types.Message):
 async def user_send_news(message: types.Message):
     """Отправляет новости по нажатию на кнопку"""
     user_id = message.from_user.id
-    user_name = str(message.from_user.full_name)
+    user_name = message.from_user.full_name
     db.add_new_user(user_id, user_name)
 
-    section = 'news_topic'
-    news_topic = db.get_user_parameter(user_id, section)
+    section = 'news_topics'
+    news_topics = db.get_user_parameter(user_id, section)
+    news_topics = news_topics.split(', ')
 
     section = 'quantity_news'
     quantity_news = db.get_user_parameter(user_id, section)
 
-    news_number = 0
-
-    while news_number < quantity_news:
-        news = get_news(news_topic, quantity_news, news_number)
+    for news_number in range(quantity_news):
+        news = get_news(random.choice(news_topics), quantity_news, news_number)
         await message.answer(news)
 
         # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше новостей не
@@ -109,7 +108,6 @@ async def user_send_news(message: types.Message):
         if '/set_news_topic' in news:
             break
         await asyncio.sleep(1)
-        news_number += 1
 
 
 @dp.message_handler(ChatType.is_private, commands='set_time')
@@ -184,7 +182,7 @@ async def user_setting_news_topic_handler(message: types.Message, state: FSMCont
     user_id = message.from_user.id
 
     new_news_topic = message.text
-    message_to_user = changer_user_params.change_news_topic(user_id, new_news_topic)
+    message_to_user = changer_user_params.change_news_topics(user_id, new_news_topic)
     await message.answer(message_to_user)
 
     await state.finish()
@@ -202,7 +200,8 @@ async def user_reset_settings(message: types.Message):
     db.delete_user_info(user_id)
     await message.answer('✔<i>Старые настройки успешно удалены!</i>\n'
                          '✔<i>Новые настройки успешно установлены!</i>\n\n'
-                         '<b>Теперь, ты будешь ежедневно получать одну новость по ключевому слову "Россия" '
+                         '<b>Теперь, ты будешь ежедневно получать одну новость по одной из одной тем: '
+                         '<b>Россия, бизнес, экономика, игры, спорт, образование</b> '
                          'и погоду из Москвы в 08:00 по МСК</b>')
 
     db.add_new_user(user_id, user_name)
@@ -249,7 +248,7 @@ async def user_set_quantity_news_buttons(message: types.Message):
                          'нажми на кнопку <b>Отмена</b>', reply_markup=markup)
 
 
-@dp.callback_query_handler(ChatType.is_private, text_contains='news_')
+@dp.callback_query_handler(text_contains='news_')
 async def user_change_quantity_news(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -344,7 +343,7 @@ def get_user_params(user):
                    'name': user[1],
                    'send_time': user[2],
                    'city': user[3],
-                   'news_topic': user[4],
+                   'news_topics': user[4],
                    'quantity_news': user[5],
                    'status': user[6]
                    }
@@ -355,18 +354,18 @@ async def user_send_regular_info(user_params):
     """Получает параметры подписанного на рассылку пользователя, отправляет ему новости и погоду"""
     # Работа с новостями
     try:
-        for news_number in range(0, user_params['quantity_news']):
-            news_message = get_news(user_params['news_topic'], user_params['quantity_news'], news_number)
+        news_topics = user_params['news_topics']
+        news_topics = news_topics.split(', ')
+
+        for news_number in range(user_params['quantity_news']):
+            news_message = get_news(random.choice(news_topics), user_params['quantity_news'], news_number)
+
             await bot.send_message(user_params['id'], news_message)
 
             # Если команда "/set_news_topic" в news_message - значит, было отправлено сообщение о том, что больше
             # новостей не найдено -> выход из цикла
             if '/set_news_topic' in news_message:
                 break
-
-        # Работа с погодой
-        weather_message = get_weather(user_params['city'])
-        await bot.send_message(user_params['id'], weather_message)
 
     except exceptions.BotBlocked:
         pass

@@ -15,9 +15,11 @@ def add_new_user(user_id, user_name):
         today = datetime.now()
         today = today.strftime("%d.%m.%Y")
 
-        cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topic, quantity_news, status, "
+        cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topics, quantity_news, status, "
                     "time_registered)"
-                    "VALUES(?, ?, '08:00', 'Москва', 'Россия', '1', '1', ?)", (user_id, str(user_name), str(today)))
+                    "VALUES(?, ?, '08:00', 'Москва', 'Россия, бизнес, экономика, игры, спорт, образование', "
+                    "'1', '1', ?)",
+                    (user_id, str(user_name), str(today)))
         con.commit()
 
     cur.close()
@@ -176,9 +178,9 @@ def get_all_group_info(group_id):
               f'✔Количество новостей, которое за раз получает группа: <b>{group_quantity_news}</b>\n'
 
     if group_status == 1:
-        message += '✔Активна ли твоя подписка на рыссылку погоды и новостей? -- <b>Активна</b>'
+        message += '✔Активна ли подписка группы на рыссылку новостей? -- <b>Активна</b>'
     else:
-        message += '✔Активна ли твоя подписка на рыссылку погоды и новостей? -- <b>Не активна</b>'
+        message += '✔Активна ли подписка группы на рыссылку новостей? -- <b>Не активна</b>'
 
     return message
 
