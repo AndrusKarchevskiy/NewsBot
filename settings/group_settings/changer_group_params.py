@@ -107,12 +107,12 @@ def change_status(group_id):
                   'востановить подписку на рассылку, введя эту же команду'
 
         parameter = 0
-        db.change_user_parameter(group_id, section, parameter)
+        db.change_group_parameter(group_id, section, parameter)
 
     else:
         message = '<b>Восстановление подписки было успешно проведено</b>. Теперь, ' \
                   'группа будет получать рассылку новостей'
         parameter = 1
-        db.change_user_parameter(group_id, section, parameter)
+        db.change_group_parameter(group_id, section, parameter)
 
     return message

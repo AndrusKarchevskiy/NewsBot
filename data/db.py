@@ -17,7 +17,7 @@ def add_new_user(user_id, user_name):
 
         cur.execute("INSERT INTO tbl_users(id, name, send_time, city, news_topics, quantity_news, status, "
                     "time_registered)"
-                    "VALUES(?, ?, '08:00', 'Москва', 'Россия, бизнес, экономика, игры, спорт, образование', "
+                    "VALUES(?, ?, '08:00', 'Москва', 'Россия, бизнес, экономика, игры, образование', "
                     "'1', '1', ?)",
                     (user_id, str(user_name), str(today)))
         con.commit()
@@ -113,7 +113,7 @@ def add_new_group(group_id):
 
         cur.execute("""INSERT INTO tbl_groups(id, send_hours, news_topics, quantity_news,
                     status, time_added) 
-                    VALUES(?, '8, 12, 16, 20', 'Россия, Америка, спорт, авто, игры, бизнес', 
+                    VALUES(?, '8, 12, 16, 20', 'Россия, бизнес, экономика, игры, образование', 
                     '1', '1', ?)""", (group_id, str(today)))
 
         con.commit()

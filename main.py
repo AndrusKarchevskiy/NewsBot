@@ -170,7 +170,7 @@ async def user_set_news_topic(message: types.Message):
     db.add_new_user(user_id, user_name)
 
     await message.answer('Введите ключевое слово (фразу), по которому(ой) ты будешь получать новости.\n'
-                         'Примеры: <b>Apple</b>, <b>Бизнес</b>, <b>Павел Дуров</b>\n\n'
+                         'Примеры: <b>Apple</b>, <b>бизнес</b>, <b>экономика</b>\n\n'
                          '<b>P.S.</b> <i>Если хочешь получать самые актуальные зарубежные новости, введи '
                          'ключевое слово (фразу) на иностранном языке</i>')
 
@@ -201,7 +201,7 @@ async def user_reset_settings(message: types.Message):
     await message.answer('✔<i>Старые настройки успешно удалены!</i>\n'
                          '✔<i>Новые настройки успешно установлены!</i>\n\n'
                          '<b>Теперь, ты будешь ежедневно получать одну новость по одной из одной тем: '
-                         '<b>Россия, бизнес, экономика, игры, спорт, образование</b> '
+                         '<b>Россия, бизнес, экономика, игры, образование</b> '
                          'и погоду из Москвы в 08:00 по МСК</b>')
 
     db.add_new_user(user_id, user_name)
@@ -230,16 +230,16 @@ async def user_set_quantity_news_buttons(message: types.Message):
     markup = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                types.InlineKeyboardButton(text="1", callback_data='news_1'),
-                types.InlineKeyboardButton(text="2", callback_data='news_2'),
-                types.InlineKeyboardButton(text="3", callback_data='news_3'),
+                types.InlineKeyboardButton(text="1", callback_data='private_chat_news_1'),
+                types.InlineKeyboardButton(text="2", callback_data='private_chat_news_2'),
+                types.InlineKeyboardButton(text="3", callback_data='private_chat_news_3'),
             ],
             [
-                types.InlineKeyboardButton(text="4", callback_data='news_4'),
-                types.InlineKeyboardButton(text="5", callback_data='news_5'),
+                types.InlineKeyboardButton(text="4", callback_data='private_chat_news_4'),
+                types.InlineKeyboardButton(text="5", callback_data='private_chat_news_5'),
             ],
             [
-                types.InlineKeyboardButton(text="Отмена", callback_data='news_cancel'),
+                types.InlineKeyboardButton(text="Отмена", callback_data='private_chat_news_cancel'),
             ]
         ]
     )
@@ -248,7 +248,7 @@ async def user_set_quantity_news_buttons(message: types.Message):
                          'нажми на кнопку <b>Отмена</b>', reply_markup=markup)
 
 
-@dp.callback_query_handler(text_contains='news_')
+@dp.callback_query_handler(text_contains='private_chat_news_')
 async def user_change_quantity_news(call: types.CallbackQuery):
     user_id = call.from_user.id
     user_name = str(call.from_user.full_name)
@@ -256,7 +256,7 @@ async def user_change_quantity_news(call: types.CallbackQuery):
 
     await call.answer(cache_time=10)
 
-    callback_data = str(call.data).replace('news_', '')
+    callback_data = str(call.data).replace('private_chat_news_', '')
 
     if callback_data.isdigit():
         section = 'quantity_news'
@@ -478,7 +478,7 @@ async def set_group_time(message: types.Message):
     db.add_new_group(group_id)
 
     await message.reply('Введите часы через запятую + пробел, в которые в чат автоматически будут отправляться '
-                        'новости. Пример ввода: <i>8, 9, 12, 20</i>')
+                        'новости. Пример ввода: <b>8, 9, 12, 20</b>')
 
     await GroupParams.SetHours.set()
 
@@ -529,12 +529,12 @@ async def group_set_quantity_news_buttons(message: types.Message):
     markup = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                types.InlineKeyboardButton(text="1", callback_data='news_1'),
-                types.InlineKeyboardButton(text="2", callback_data='news_2'),
-                types.InlineKeyboardButton(text="3", callback_data='news_3'),
+                types.InlineKeyboardButton(text="1", callback_data='group_news_1'),
+                types.InlineKeyboardButton(text="2", callback_data='group_news_2'),
+                types.InlineKeyboardButton(text="3", callback_data='group_news_3'),
             ],
             [
-                types.InlineKeyboardButton(text="Отмена", callback_data='news_cancel'),
+                types.InlineKeyboardButton(text="Отмена", callback_data='group_news_cancel'),
             ]
         ]
     )
@@ -543,12 +543,12 @@ async def group_set_quantity_news_buttons(message: types.Message):
                          'изменять значение, нажми на кнопку <b>Отмена</b>', reply_markup=markup)
 
 
-@dp.callback_query_handler(is_chat_admin=True, text_contains='news_')
-async def user_change_quantity_news(call: types.CallbackQuery):
+@dp.callback_query_handler(is_chat_admin=True, text_contains='group_news_')
+async def group_change_quantity_news(call: types.CallbackQuery):
     group_id = call.message.chat.id
     db.add_new_group(group_id)
 
-    callback_data = str(call.data).replace('news_', '')
+    callback_data = str(call.data).replace('group_news_', '')
 
     if callback_data.isdigit():
         section = 'quantity_news'
@@ -567,7 +567,7 @@ async def user_change_quantity_news(call: types.CallbackQuery):
 
 @dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, commands='set_status')
 @dp.throttled(rate=3)
-async def user_set_status(message: types.Message):
+async def group_set_status(message: types.Message):
     group_id = message.chat.id
     db.add_new_group(group_id)
 
@@ -577,7 +577,7 @@ async def user_set_status(message: types.Message):
 
 @dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, commands='check_params')
 @dp.throttled(rate=3)
-async def check_user_params(message: types.Message):
+async def check_group_params(message: types.Message):
     """Отправляет текущие настройки пользователя"""
     group_id = message.chat.id
     db.add_new_group(group_id)
@@ -644,45 +644,26 @@ async def group_regular_sending(group_params):
         pass
 
 
-@scheduler.scheduled_job(CronTrigger.from_crontab('0 * * * *'))
+@scheduler.scheduled_job(CronTrigger.from_crontab('59 * * * *'))
 async def groups_sending_control():
-    # Получаем список кортежей со всеми группами
+    # Get tuple of lists with all groups
     all_groups = db.get_all_groups_info()
 
     for group in all_groups:
-        # Получаем словарь для более удобной работы
         group_params = get_group_params(group)
 
-        # Проверяем, деактивирована ли подписка группы
-        if group_params['status'] == 0:
-            cron_obj = scheduler.get_job(job_id=str(group_params['id']))
-            if cron_obj is not None:
-                scheduler.remove_job(job_id=str(group_params['id']))
+        cron_obj = scheduler.get_job(job_id=str(group_params['id']))
 
-        # Сюда попадаем, если группа подписана на рассылку
-        else:
-            # Получаем объект cron
-            cron_obj = scheduler.get_job(job_id=str(group_params['id']))
+        if cron_obj is not None:
+            scheduler.remove_job(job_id=str(group_params['id']))
 
-            # Получаем время группы из объекта крона
-            from_db_time = group_params['send_hours']
-            from_db_time = from_db_time.split(', ')
-            from_db_time = ','.join(from_db_time)
+        from_db_hours = group_params['send_hours']
+        from_db_hours = from_db_hours.split(', ')
+        from_db_hours = ','.join(from_db_hours)
 
-            if cron_obj is None:
-                scheduler.add_job(group_regular_sending,
-                                  CronTrigger.from_crontab(f'* {from_db_time} * * *'),
-                                  args=(group_params,), id=str(group_params['id']))
-
-            else:
-                schedule_time = cron_obj.next_run_time.strftime('%H')
-
-                # Проверяем, изменил ли админ группы время отправки
-                if from_db_time != schedule_time:
-                    scheduler.remove_job(str(group_params['id']))
-                    scheduler.add_job(group_regular_sending,
-                                      CronTrigger.from_crontab(f'* {from_db_time} * * *'),
-                                      args=(group_params,), id=str(group_params['id']))
+        scheduler.add_job(group_regular_sending,
+                          CronTrigger.from_crontab(f'0 {from_db_hours} * * *'),
+                          args=(group_params,), id=str(group_params['id']))
 
 
 loop = asyncio.get_event_loop()
