@@ -645,6 +645,8 @@ async def group_regular_sending(group_params):
             if '/set_news_topic' in news_message:
                 break
 
+            await asyncio.sleep(1)
+
     except exceptions.BotBlocked:
         pass
 
@@ -670,8 +672,6 @@ async def groups_sending_control():
             scheduler.add_job(group_regular_sending,
                               CronTrigger.from_crontab(f'{str(random.randint(1, 3))} {from_db_hours} * * *'),
                               args=(group_params,), id=str(group_params['id']))
-
-        await asyncio.sleep(0.1)
 
 
 loop = asyncio.get_event_loop()
