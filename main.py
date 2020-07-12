@@ -637,14 +637,7 @@ async def group_regular_sending(group_params):
 
         for news_number in range(group_params['quantity_news']):
             news_message = get_news(random.choice(news_topics), group_params['quantity_news'], news_number)
-
             await bot.send_message(group_params['id'], news_message)
-
-            # Если команда "/set_news_topic" в news_message - значит, было отправлено сообщение о том, что больше
-            # новостей не найдено -> выход из цикла
-            if '/set_news_topic' in news_message:
-                break
-
             await asyncio.sleep(1)
 
     except exceptions.BotBlocked:
