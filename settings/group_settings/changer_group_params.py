@@ -10,7 +10,7 @@ from data import db  # Модуль для работы с базой данны
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 
 
-def change_time(group_id, new_hours: str):
+async def change_time(group_id, new_hours: str):
     """Вспомогательная функция (основная - set_time), в которой происходит валидация введённого времени пользователем.
     Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
     new_hours = new_hours.split(', ')
@@ -46,12 +46,12 @@ def change_time(group_id, new_hours: str):
 
         section = 'send_hours'
         info = ', '.join(formatted_hours)
-        db.change_group_parameter(group_id, section, info)
+        await db.change_group_parameter(group_id, section, info)
 
     return message
 
 
-def change_news_topics(group_id, new_news_topics: str):
+async def change_news_topics(group_id, new_news_topics: str):
     """Функция, в которой происходит валидация введённой админом тем новостей.
      Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение в группу"""
     new_news_topics = new_news_topics.split(', ')
@@ -91,15 +91,15 @@ def change_news_topics(group_id, new_news_topics: str):
 
         section = 'news_topics'
         info = ", ".join(new_news_topics)
-        db.change_group_parameter(group_id, section, info)
+        await db.change_group_parameter(group_id, section, info)
 
     return message
 
 
-def change_status(group_id):
+async def change_status(group_id):
     """Функция, изменяющая статус подписки группы (получать/не получать рассылку)"""
     section = 'status'
-    old_status = db.get_group_parameter(group_id, section)
+    old_status = await db.get_group_parameter(group_id, section)
 
     if old_status == 1:
         message = '<b>Отмена подписки была успешно проведена</b>. Теперь, чат не будет получать ' \
@@ -107,12 +107,12 @@ def change_status(group_id):
                   'востановить подписку на рассылку, введя эту же команду'
 
         parameter = 0
-        db.change_group_parameter(group_id, section, parameter)
+        await db.change_group_parameter(group_id, section, parameter)
 
     else:
         message = '<b>Восстановление подписки было успешно проведено</b>. Теперь, ' \
                   'группа будет получать рассылку новостей'
         parameter = 1
-        db.change_group_parameter(group_id, section, parameter)
+        await db.change_group_parameter(group_id, section, parameter)
 
     return message

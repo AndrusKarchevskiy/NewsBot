@@ -14,12 +14,12 @@ from data import db  # Модуль для работы с базой данны
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 
 
-def change_time(user_id, new_time):
+async def change_time(user_id, new_time):
     """Вспомогательная функция (основная - set_time), в которой происходит валидация введённого времени пользователем.
     Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
     try:
         section = 'send_time'
-        old_time = db.get_user_parameter(user_id, section)
+        old_time = await db.get_user_parameter(user_id, section)
         new_time = parse(new_time).strftime("%H:%M")
         message = f'✔Время <b>{old_time}</b> успешно удалено!😃\n'
 
@@ -28,7 +28,7 @@ def change_time(user_id, new_time):
                       f'хочешь изменить его, введи другое😃'
         else:
             parameter = new_time
-            db.change_user_parameter(user_id, section, parameter)
+            await db.change_user_parameter(user_id, section, parameter)
             message += f'✔Время <b>{new_time}</b> успешно установлено!😃'
 
     except Exception:
@@ -37,7 +37,7 @@ def change_time(user_id, new_time):
     return message
 
 
-def change_city(user_id, new_city):
+async def change_city(user_id, new_city):
     """Вспомогательная функция (основная - set_city), в которой происходит валидация введённого города пользователем.
     Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение пользователю"""
     try:
@@ -46,7 +46,7 @@ def change_city(user_id, new_city):
         api.get_weather(new_city)  # Пробуем получить данные из региона, введённого пользователем
 
         section = 'city'
-        old_city = db.get_user_parameter(user_id, section)
+        old_city = await db.get_user_parameter(user_id, section)
 
         if new_city == old_city:
             message = f'Введён город, который уже установлен - <b>{new_city}</b>. Если действительно хочешь изменить ' \
@@ -56,7 +56,7 @@ def change_city(user_id, new_city):
             message = f'✔Город <b>{old_city}</b> успешно удалён!😃\n'
 
             parameter = new_city
-            db.change_user_parameter(user_id, section, parameter)
+            await db.change_user_parameter(user_id, section, parameter)
 
             message += f'✔Город <b>{new_city}</b> успешно установлен!😃'
 
@@ -66,7 +66,7 @@ def change_city(user_id, new_city):
     return message
 
 
-def change_news_topics(user_id, new_news_topics: str):
+async def change_news_topics(user_id, new_news_topics: str):
     """Функция, в которой происходит валидация введённой админом тем новостей.
      Валидация пройдена -> значение в базу данных, иначе - соответствующее сообщение в группу"""
     new_news_topics = new_news_topics.split(', ')
@@ -106,28 +106,28 @@ def change_news_topics(user_id, new_news_topics: str):
 
         section = 'news_topics'
         info = ", ".join(new_news_topics)
-        db.change_user_parameter(user_id, section, info)
+        await db.change_user_parameter(user_id, section, info)
 
     return message
 
 
-def change_status(user_id):
+async def change_status(user_id):
     """Функция, изменяющая статус подписки пользователя (получать/не получать рассылку)"""
     section = 'status'
 
-    old_status = db.get_user_parameter(user_id, section)
+    old_status = await db.get_user_parameter(user_id, section)
 
     if old_status == 1:
         message = '<b>Отмена подписки была успешно проведена</b>. Теперь, ты не ' \
                   'будешь получать новости, погоду в определённое время, но в ' \
                   'любой момент снова можешь подписаться, введя эту же команду😉'
         parameter = 0
-        db.change_user_parameter(user_id, section, parameter)
+        await db.change_user_parameter(user_id, section, parameter)
 
     else:
         message = '<b>Восстановление подписки было успешно проведено</b>. Теперь, ' \
                   'ты будешь получать рассылку новостей и погоды в выбранное тобой время😉'
         parameter = 1
-        db.change_user_parameter(user_id, section, parameter)
+        await db.change_user_parameter(user_id, section, parameter)
 
     return message
