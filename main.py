@@ -11,17 +11,22 @@ from aiogram.utils.markdown import quote_html
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
+from pyowm.exceptions import api_response_error
 
-from api.api import get_news, get_weather  # Модуль, который работает с API погоды, новостей
-from data import db  # Модуль для работы с базой данных
-from settings import config  # Модуль, в котором хранятся Токены от API, "секретная" информация
+from api.api import get_news, get_weather
+from api import currency_parser
+
+from data import db
+from settings import config
 from settings.user_settings import private_chat_template_messages as private_tmp_msg
 from settings.group_settings import group_template_messages as group_tmp_msg
-# Модуль, в котором генерируется ответ на запрос по смене параметра, параметр, если валиден, заносится в БД
 from settings.user_settings import changer_user_params
 from settings.group_settings import changer_group_params
 from states.params import UserParams, GroupParams
+
+from keyboards.reply.default_keyboards import default_user_markup, default_group_markup
+from keyboards.inline import user_keyboards, group_keyboards
+
 
 # Включаем логгирование
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',)
@@ -46,12 +51,7 @@ async def user_send_welcome(message: types.Message):
 
     await message.reply(f'<b>🤝Здравствуйте, {quote_html(message.from_user.first_name)}🤝!</b>')
 
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-    item1 = types.KeyboardButton('🧐Новости')
-    item2 = types.KeyboardButton('🌤Погода')
-    markup.add(item1, item2)
-    await message.answer(private_tmp_msg.welcome_message, reply_markup=markup)
+    await message.answer(private_tmp_msg.welcome_message, reply_markup=default_user_markup)
 
 
 @dp.message_handler(ChatType.is_private, commands='help')
@@ -62,7 +62,7 @@ async def user_show_information(message: types.Message):
     user_name = str(message.from_user.full_name)
     await db.add_new_user(user_id, user_name)
 
-    await message.answer(private_tmp_msg.information_message)
+    await message.answer(private_tmp_msg.information_message, reply_markup=default_user_markup)
 
 
 @dp.message_handler(ChatType.is_private, text='🌤Погода')
@@ -77,11 +77,23 @@ async def user_send_weather(message: types.Message):
     city = await db.get_user_parameter(user_id, section)
     try:
         weather = get_weather(city)
-        await message.answer(weather)
+        await message.answer(weather, reply_markup=default_user_markup)
 
     except api_response_error.NotFoundError:
         await message.answer('К сожалению, <b>произошла ошибка</b> во время подключения к серверу. Пожалуйста, '
-                             'повтори попытку🤔')
+                             'повтори попытку🤔', reply_markup=default_user_markup)
+
+
+@dp.message_handler(ChatType.is_private, text='👔Курсы валют')
+@dp.throttled(rate=3)
+async def user_send_valutes(message: types.Message):
+    """Отправляет курсы валют по нажатию на кнопку"""
+    user_id = message.from_user.id
+    user_name = str(message.from_user.full_name)
+    await db.add_new_user(user_id, user_name)
+
+    message_to_user = currency_parser.get_message()
+    await message.answer(message_to_user, reply_markup=default_user_markup)
 
 
 @dp.message_handler(ChatType.is_private, text='🧐Новости')
@@ -101,7 +113,7 @@ async def user_send_news(message: types.Message):
 
     for news_number in range(quantity_news):
         news = get_news(random.choice(news_topics), quantity_news, news_number)
-        await message.answer(news)
+        await message.answer(news, reply_markup=default_user_markup)
 
         # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше новостей не
         # найдено -> выход из цикла
@@ -120,7 +132,7 @@ async def user_set_time(message: types.Message):
 
     await message.answer('Введи время <b>(по МСК)</b>, в которое каждый день будешь получать '
                          'новости и сводку погоды. Формат: <b>ЧЧ:ММ</b>. Примеры: '
-                         '<b>08:20</b>, <b>22:05</b>')
+                         '<b>08:20</b>, <b>22:05</b>', reply_markup=default_user_markup)
 
     await UserParams.SetTime.set()
 
@@ -131,7 +143,7 @@ async def user_setting_time_handler(message: types.Message, state: FSMContext):
     new_time = message.text
 
     message_to_user = await changer_user_params.change_time(user_id, new_time)
-    await message.answer(message_to_user)
+    await message.answer(message_to_user, reply_markup=default_user_markup)
 
     await state.finish()
 
@@ -145,7 +157,7 @@ async def user_set_city(message: types.Message):
     await db.add_new_user(user_id, user_name)
 
     await message.answer('Введи город, из которого хочешь получать сводку погоды.\nПримеры: '
-                         '<b>Санкт-Петербург</b>, <b>Киев</b>, <b>Брянск</b>')
+                         '<b>Санкт-Петербург</b>, <b>Киев</b>, <b>Брянск</b>', reply_markup=default_user_markup)
 
     await UserParams.SetCity.set()
 
@@ -156,7 +168,7 @@ async def user_setting_city_handler(message: types.Message, state: FSMContext):
 
     new_city = message.text
     message_to_user = await changer_user_params.change_city(user_id, new_city)
-    await message.answer(message_to_user)
+    await message.answer(message_to_user, reply_markup=default_user_markup)
 
     await state.finish()
 
@@ -172,7 +184,7 @@ async def user_set_news_topic(message: types.Message):
     await message.answer('Введите ключевое слово (фразу), по которому(ой) ты будешь получать новости.\n'
                          'Примеры: <b>Apple</b>, <b>бизнес</b>, <b>экономика</b>\n\n'
                          '<b>P.S.</b> <i>Если хочешь получать самые актуальные зарубежные новости, введи '
-                         'ключевое слово (фразу) на иностранном языке</i>')
+                         'ключевое слово (фразу) на иностранном языке</i>', reply_markup=default_user_markup)
 
     await UserParams.SetNewsTopic.set()
 
@@ -183,7 +195,7 @@ async def user_setting_news_topic_handler(message: types.Message, state: FSMCont
 
     new_news_topic = message.text
     message_to_user = await changer_user_params.change_news_topics(user_id, new_news_topic)
-    await message.answer(message_to_user)
+    await message.answer(message_to_user, reply_markup=default_user_markup)
 
     await state.finish()
 
@@ -202,7 +214,7 @@ async def user_reset_settings(message: types.Message):
                          '✔<i>Новые настройки успешно установлены!</i>\n\n'
                          '<b>Теперь, ты будешь ежедневно получать одну новость по одной из одной тем: '
                          '<b>Россия, бизнес, экономика, игры, образование</b> '
-                         'и погоду из Москвы в 08:00 по МСК</b>')
+                         'и погоду из Москвы в 08:00 по МСК</b>', reply_markup=default_user_markup)
 
     await db.add_new_user(user_id, user_name)
     await db.change_user_parameter(user_id, 'time_registered', time_registered)
@@ -216,7 +228,7 @@ async def user_set_status(message: types.Message):
     await db.add_new_user(user_id, user_name)
 
     message_to_user = await changer_user_params.change_status(user_id)
-    await message.answer(message_to_user)
+    await message.answer(message_to_user, reply_markup=default_user_markup)
 
 
 @dp.message_handler(ChatType.is_private, commands='set_quantity_news')
@@ -227,25 +239,8 @@ async def user_set_quantity_news_buttons(message: types.Message):
     user_name = str(message.from_user.full_name)
     await db.add_new_user(user_id, user_name)
 
-    markup = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(text="1", callback_data='private_chat_news_1'),
-                types.InlineKeyboardButton(text="2", callback_data='private_chat_news_2'),
-                types.InlineKeyboardButton(text="3", callback_data='private_chat_news_3'),
-            ],
-            [
-                types.InlineKeyboardButton(text="4", callback_data='private_chat_news_4'),
-                types.InlineKeyboardButton(text="5", callback_data='private_chat_news_5'),
-            ],
-            [
-                types.InlineKeyboardButton(text="Отмена", callback_data='private_chat_news_cancel'),
-            ]
-        ]
-    )
-
     await message.answer('Выбери количество новостей, которое будешь получать. Если не хочешь изменять значение, '
-                         'нажми на кнопку <b>Отмена</b>', reply_markup=markup)
+                         'нажми на кнопку <b>Отмена</b>', reply_markup=user_keyboards.quantity_news_markup)
 
 
 @dp.callback_query_handler(text_contains='private_chat_news_')
@@ -283,19 +278,12 @@ async def user_donate_buttons(message: types.Message):
     user_name = str(message.from_user.full_name)
     await db.add_new_user(user_id, user_name)
 
-    markup = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [types.InlineKeyboardButton(text="QIWI", url='qiwi.com/n/ANDRUS', callback_data='private_chat_donate_QIWI')],
-            [types.InlineKeyboardButton(text="Номер карты (Сбербанк)", callback_data='private_chat_donate_Sberbank')],
-            [types.InlineKeyboardButton(text="Отмена", callback_data='private_chat_donate_cancel')]
-        ]
-    )
-
     await message.answer('Выбери способ оплаты. Если хочешь поддержать проект через <b>QIWI</b>, '
                          'после перевода средств нажми <b>Отмена</b>, иначе кнопки не пропадут')
+
     await message.answer('<b>Если действительно хочешь задонатить, пожалуйста, укажи в сообщении с донатом ссылку '
                          'на свой телеграмм-аккаунт, чтобы создатель бота смог написать и поблагодарить тебя😉</b>',
-                         reply_markup=markup)
+                         reply_markup=user_keyboards.donate_markup)
 
 
 @dp.callback_query_handler(text_contains='private_chat_donate_')
@@ -324,7 +312,7 @@ async def check_user_params(message: types.Message):
 
     user_params = await db.get_all_user_info(user_id)
     await message.answer(f'Отправляю твои текущие настройки:\n\n{user_params}\n\nЕсли хочешь изменить что-либо, '
-                         f'воспользуйся остальными командами!😃')
+                         f'воспользуйся остальными командами!😃', reply_markup=default_user_markup)
 
 
 @dp.message_handler(ChatType.is_private)
@@ -334,7 +322,7 @@ async def user_message_control(message: types.Message):
     user_name = str(message.from_user.full_name)
     await db.add_new_user(user_id, user_name)
 
-    await message.answer(private_tmp_msg.not_correct_message)
+    await message.answer(private_tmp_msg.not_correct_message, reply_markup=default_user_markup)
 
 
 @dp.message_handler(content_types='new_chat_members')
@@ -342,14 +330,9 @@ async def adding_to_new_chat(message: types.Message):
     group_id = message.chat.id
     await db.add_new_group(group_id)
 
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-    item1 = types.KeyboardButton('🧐Новости')
-    markup.add(item1)
-
     for user in message.new_chat_members:
         if user.id == bot.id:
-            await message.answer(group_tmp_msg.welcome_message, reply_markup=markup)
+            await message.answer(group_tmp_msg.welcome_message, reply_markup=default_group_markup)
             break
 
 
@@ -359,12 +342,7 @@ async def show_information_to_group(message: types.Message):
     group_id = message.chat.id
     await db.add_new_group(group_id)
 
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-    item1 = types.KeyboardButton('🧐Новости')
-    markup.add(item1)
-
-    await message.answer(group_tmp_msg.welcome_message, reply_markup=markup)
+    await message.answer(group_tmp_msg.welcome_message, reply_markup=default_group_markup)
 
 
 @dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, text='🧐Новости')
@@ -383,13 +361,24 @@ async def group_send_news(message: types.Message):
 
     for news_number in range(quantity_news):
         news = get_news(random.choice(news_topics), quantity_news, news_number)
-        await message.answer(news)
+        await message.answer(news, reply_markup=default_group_markup)
 
         # Если команда "/set_news_topic" в news - значит, было отправлено сообщение о том, что больше новостей не
         # найдено -> выход из цикла
         if '/set_news_topic' in news:
             break
         await asyncio.sleep(1)
+
+
+@dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, text='👔Курсы валют')
+@dp.throttled(rate=3)
+async def group_send_valutes(message: types.Message):
+    """Отправляет курсы валют по нажатию на кнопку"""
+    group_id = message.chat.id
+    await db.add_new_group(group_id)
+
+    message_to_user = currency_parser.get_message()
+    await message.answer(message_to_user, reply_markup=default_group_markup)
 
 
 @dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, commands='set_time')
@@ -399,7 +388,7 @@ async def set_group_time(message: types.Message):
     await db.add_new_group(group_id)
 
     await message.reply('Введите часы через запятую + пробел, в которые в чат автоматически будут отправляться '
-                        'новости. Пример ввода: <b>8, 9, 12, 20</b>')
+                        'новости. Пример ввода: <b>8, 9, 12, 20</b>', reply_markup=default_group_markup)
 
     await GroupParams.SetHours.set()
 
@@ -412,7 +401,7 @@ async def group_setting_time_handler(message: types.Message, state: FSMContext):
     new_time = message.text
 
     message_to_group = await changer_group_params.change_time(group_id, new_time)
-    await message.reply(message_to_group)
+    await message.reply(message_to_group, reply_markup=default_group_markup)
 
     await state.finish()
 
@@ -424,7 +413,7 @@ async def group_set_news_topics(message: types.Message):
     await db.add_new_group(group_id)
 
     await message.reply('Введите через запятую + пробел темы новостей, по которым группа будет получать новости.\n'
-                        'Пример: <i>Россия, экономика, бизнес, футбол</i>')
+                        'Пример: <i>Россия, экономика, бизнес, футбол</i>', reply_markup=default_group_markup)
 
     await GroupParams.SetNewsTopics.set()
 
@@ -435,7 +424,7 @@ async def group_setting_news_topics_handler(message: types.Message, state: FSMCo
     new_news_topics = message.text
 
     message_to_group = await changer_group_params.change_news_topics(group_id, new_news_topics)
-    await message.reply(message_to_group)
+    await message.reply(message_to_group, reply_markup=default_group_markup)
 
     await state.finish()
 
@@ -447,21 +436,9 @@ async def group_set_quantity_news_buttons(message: types.Message):
     group_id = message.chat.id
     await db.add_new_group(group_id)
 
-    markup = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(text="1", callback_data='group_news_1'),
-                types.InlineKeyboardButton(text="2", callback_data='group_news_2'),
-                types.InlineKeyboardButton(text="3", callback_data='group_news_3'),
-            ],
-            [
-                types.InlineKeyboardButton(text="Отмена", callback_data='group_news_cancel'),
-            ]
-        ]
-    )
-
     await message.answer('Выбери количество новостей, которое будет получать группа. Админ, если передумал '
-                         'изменять значение, нажми на кнопку <b>Отмена</b>', reply_markup=markup)
+                         'изменять значение, нажми на кнопку <b>Отмена</b>',
+                         reply_markup=group_keyboards.quantity_news_markup)
 
 
 @dp.callback_query_handler(is_chat_admin=True, text_contains='group_news_')
@@ -493,7 +470,7 @@ async def group_set_status(message: types.Message):
     await db.add_new_group(group_id)
 
     message_to_group = await changer_group_params.change_status(group_id)
-    await message.reply(message_to_group)
+    await message.reply(message_to_group, reply_markup=default_group_markup)
 
 
 @dp.message_handler(ChatType.is_group_or_super_group, is_chat_admin=True, commands='check_params')
@@ -519,7 +496,8 @@ async def user_reset_settings(message: types.Message):
 
     await message.answer('✔<i>Старые настройки успешно удалены!</i>\n'
                          '✔<i>Новые настройки успешно установлены!</i>\n\n'
-                         '✔<i>Чтобы увидеть параметры, введите команду /check_params</i>')
+                         '✔<i>Чтобы увидеть параметры, введите команду /check_params</i>',
+                         reply_markup=default_group_markup)
 
     await db.add_new_group(group_id)
     await db.change_group_parameter(group_id, 'time_added', time_added)
@@ -531,7 +509,7 @@ async def private_chat_command(message: types.Message):
     group_id = message.chat.id
     await db.add_new_group(group_id)
 
-    await message.reply('<b>Команда доступна только в ЛС</b>')
+    await message.reply('<b>Команда доступна только в ЛС</b>', reply_markup=default_group_markup)
 
 
 def get_user_params(user):
@@ -564,8 +542,13 @@ async def user_send_regular_info(user_params):
                 break
 
         await asyncio.sleep(1)
+
+        valutes_message = currency_parser.get_message()
+        await bot.send_message(user_params['id'], valutes_message)
+        await asyncio.sleep(1)
+
         weather_message = get_weather(user_params['city'])
-        await bot.send_message(user_params['id'], weather_message)
+        await bot.send_message(user_params['id'], weather_message, reply_markup=default_user_markup)
 
     except exceptions.BotBlocked:
         pass
@@ -639,6 +622,9 @@ async def group_regular_sending(group_params):
             news_message = get_news(random.choice(news_topics), group_params['quantity_news'], news_number)
             await bot.send_message(group_params['id'], news_message)
             await asyncio.sleep(1)
+
+        valutes_message = currency_parser.get_message()
+        await bot.send_message(group_params['id'], valutes_message, reply_markup=default_group_markup)
 
     except exceptions.BotBlocked:
         pass
