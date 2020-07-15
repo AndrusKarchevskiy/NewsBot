@@ -26,3 +26,8 @@ donate_markup = types.InlineKeyboardMarkup(
         ]
     )
 
+currency_markup = types.InlineKeyboardMarkup(
+    inline_keyboard=[
+        [types.InlineKeyboardButton(text="Подробнее", callback_data='more_details')]
+    ]
+)

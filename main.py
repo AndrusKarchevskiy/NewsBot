@@ -92,8 +92,19 @@ async def user_send_valutes(message: types.Message):
     user_name = str(message.from_user.full_name)
     await db.add_new_user(user_id, user_name)
 
-    message_to_user = currency_parser.get_message()
-    await message.answer(message_to_user, reply_markup=default_user_markup)
+    message_to_user = currency_parser.get_base_message()
+    await message.answer(message_to_user, reply_markup=user_keyboards.currency_markup)
+
+
+@dp.callback_query_handler(text_contains='more_details')
+async def user_donation(call: types.CallbackQuery):
+    user_id = call.from_user.id
+    user_name = call.from_user.full_name
+    await db.add_new_user(user_id, user_name)
+
+    message_to_user = currency_parser.get_detailed_message()
+    await call.message.answer(message_to_user)
+    await call.message.edit_reply_markup(reply_markup=None)
 
 
 @dp.message_handler(ChatType.is_private, text='🧐Новости')
@@ -377,7 +388,8 @@ async def group_send_valutes(message: types.Message):
     group_id = message.chat.id
     await db.add_new_group(group_id)
 
-    message_to_user = currency_parser.get_message()
+    message_to_user = currency_parser.get_base_message() + '\n'
+    message_to_user += currency_parser.get_detailed_message()
     await message.answer(message_to_user, reply_markup=default_group_markup)
 
 
@@ -543,7 +555,7 @@ async def user_send_regular_info(user_params):
 
         await asyncio.sleep(1)
 
-        valutes_message = currency_parser.get_message()
+        valutes_message = currency_parser.get_base_message()
         await bot.send_message(user_params['id'], valutes_message)
         await asyncio.sleep(1)
 
@@ -623,7 +635,8 @@ async def group_regular_sending(group_params):
             await bot.send_message(group_params['id'], news_message)
             await asyncio.sleep(1)
 
-        valutes_message = currency_parser.get_message()
+        valutes_message = currency_parser.get_base_message() + '\n'
+        valutes_message += currency_parser.get_detailed_message()
         await bot.send_message(group_params['id'], valutes_message, reply_markup=default_group_markup)
 
     except exceptions.BotBlocked:
