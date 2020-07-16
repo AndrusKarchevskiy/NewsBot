@@ -36,7 +36,7 @@ bot = Bot(token=config.BOT_TOKEN, parse_mode=types.ParseMode.HTML)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-# Инициализируем, запускаем apscheduler (нужен для регулярной рассылки погоды и новостей)
+# Инициализируем, запускаем apscheduler (нужен для регулярной рассылки)
 scheduler = AsyncIOScheduler()
 scheduler.start()
 
