@@ -35,6 +35,7 @@ def get_base_currencies(get_xml) -> str:
         valute_name = structure.find(f'./*[@ID="{currency_id}"]/Name').text
         valute_char_code = structure.find(f'./*[@ID="{currency_id}"]/CharCode').text
         valute_value = structure.find(f'./*[@ID="{currency_id}"]/Value').text
+        valute_value = str(round(float(valute_value.replace(',', '.')), 2)).replace('.', ',')
         state_flag = flags[i]
 
         currencies[valute_name] = (state_flag, valute_char_code, valute_value)
@@ -57,7 +58,7 @@ def get_detailed_currencies(get_xml) -> str:
         valute_name = structure.find(f'./*[@ID="{currency_id}"]/Name').text
         valute_char_code = structure.find(f'./*[@ID="{currency_id}"]/CharCode').text
         valute_value = structure.find(f'./*[@ID="{currency_id}"]/Value').text.replace(',', '.')
-        valute_value = float(valute_value) / dividers[i]
+        valute_value = round(float(valute_value) / dividers[i], 2)
         valute_value = str(valute_value).replace('.', ',')
         state_flag = flags[i]
 
