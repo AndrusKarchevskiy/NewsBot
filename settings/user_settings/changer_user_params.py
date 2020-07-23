@@ -1,15 +1,12 @@
-from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
-from newsapi import NewsApiClient  # API для работы с новостями
-
 from datetime import datetime, timedelta
+
 from dateutil.parser import parse
+from newsapi import NewsApiClient  # API для работы с новостями
+from pyowm.exceptions import api_response_error  # Импортируем обработчик ошибок PYOWM API
 
-from settings.user_settings import private_chat_template_messages as private_tmp_msg
-from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
 from api import api  # Модуль для работы с API
-
-from data import db  # Модуль для работы с базой данных
-
+from data import db, config  # Модуль для работы с базой данных
+from settings.user_settings import private_chat_template_messages as private_tmp_msg
 
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 

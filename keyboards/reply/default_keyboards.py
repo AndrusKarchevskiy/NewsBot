@@ -1,6 +1,5 @@
 from aiogram import types
 
-
 default_user_markup = types.ReplyKeyboardMarkup(
     keyboard=[
         [

@@ -1,6 +1,6 @@
-import aiosqlite as lite
 from datetime import datetime
 
+import aiosqlite as lite
 
 data = 'data/data.db'
 

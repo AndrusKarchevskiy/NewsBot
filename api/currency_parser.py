@@ -1,5 +1,6 @@
-import requests
 import xml.etree.ElementTree as ET
+
+import requests
 
 
 def base_message_former(currencies: dict) -> str:

@@ -1,11 +1,8 @@
-from newsapi import NewsApiClient  # API для работы с новостями
-
 from datetime import datetime, timedelta
 
-from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
+from newsapi import NewsApiClient  # API для работы с новостями
 
-from data import db  # Модуль для работы с базой данных
-
+from data import db, config  # Модуль для работы с базой данных
 
 news_api = NewsApiClient(api_key=config.NEWS_TOKEN[0])
 

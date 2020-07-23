@@ -1,10 +1,10 @@
-from pyowm import OWM  # API для работы с погодой
-from newsapi import NewsApiClient  # API для работы с новостями
-
 from datetime import datetime, timedelta
-from dateutil.parser import parse
 
-from settings import config  # Модуль, в котором хранятся Токены от API, "security" информация
+from dateutil.parser import parse
+from newsapi import NewsApiClient  # API для работы с новостями
+from pyowm import OWM  # API для работы с погодой
+
+from data import config
 from settings.user_settings import private_chat_template_messages as private_tmp_msg
 
 owm = OWM(config.OWM_TOKEN, language='ru')
@@ -92,7 +92,7 @@ def get_news(news_topic, quantity_news, news_number):
     except IndexError:
         if news_number > 0:
             message = f'🧐К сожалению, больше новостей по теме <b>"{news_topic}"</b> не найдено. Удалось найти ' \
-                      f'только <b>{news_number+1}</b> новости(ей) из <b>{quantity_news}</b>🙁.\n' \
+                      f'только <b>{news_number + 1}</b> новости(ей) из <b>{quantity_news}</b>🙁.\n' \
                       f'Если хочешь получить больше новостей, попробуй повторить попытку чуть позже, либо ' \
                       f'введи команду <b>/set_news_topic</b>, чтобы сменить ключевое ' \
                       f'слово, по которому будешь получать их😉'
