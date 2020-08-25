@@ -1,14 +1,35 @@
 # NewsBot
-Телеграм-бот, который отсылает новости, курсы валют и погоду, гибко настраивается под каждого пользователя (группу).
 
-Язык программирования: Python3.8.3.
+**Description:**
 
-Библиотека: aiogram.
+It's Telegram Bot that works in private messages and groups; send news based on your chosen topics, weather from your chosen city or region, the most popular exchange rates. Bot has switchable regular mailing at a user-selected (group-selected) time. *Now, works only on russian language*.
 
-Установка: 1) git clone https://github.com/AndrusKarchevskiy/NewsBot; 2) pip install -r requirements.txt
+**Base Stack:** 
 
-Бот во внутреннем поиске телеграмм: @andrus_news_bot.
+Python3.8.3, Aiogram. 
 
-Бот по ссылке в браузере: https://t.me/andrus_news_bot.
+All used modules and libs you can check in project or at requirements.txt
 
-Ссылка на Github: https://github.com/AndrusKarchevskiy/NewsBot.
+**Installation:** 
+
+1) *git clone https://github.com/AndrusKarchevskiy/NewsBot* 
+
+2) *pip install -r requirements.txt*
+
+3) Create *.env* file in root directory of project. 
+
+4) In *.env* create 3 main variables: 
+
+`BOT_TOKEN` -- get it in BotFather (Telegram-bot)
+
+`OWM_TOKEN` -- get it here: https://openweathermap.org/appid
+
+`NEWS_TOKEN` -- get it (them) here: https://newsapi.org/register (bot will work correct if you register 13 tokens! In another variant you should modify api.py file)
+
+**Links**
+
+Bot in the internal Telegram' search: @andrus_news_bot.
+
+Bot's Link in browser: https://t.me/andrus_news_bot.
+
+Link on Github: https://github.com/AndrusKarchevskiy/NewsBot.
