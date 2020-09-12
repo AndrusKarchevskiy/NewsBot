@@ -134,7 +134,7 @@ async def group_regular_sending(group_params):
         valutes_message += currency_parser.get_detailed_message()
         await bot.send_message(group_params['id'], valutes_message, reply_markup=default_group_markup)
 
-    except exceptions.BotBlocked:
+    except Exception:
         pass
 
 
