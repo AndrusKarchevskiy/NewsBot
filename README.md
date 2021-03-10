@@ -12,7 +12,7 @@ All used modules and libs you can check in project or at requirements.txt
 
 **Installation:** 
 
-1) *git clone https://github.com/AndrusKarchevskiy/NewsBot* 
+1) *git clone https://github.com/karchx/NewsBot* 
 
 2) *pip install -r requirements.txt*
 
@@ -28,8 +28,8 @@ All used modules and libs you can check in project or at requirements.txt
 
 **Links**
 
-Bot in the internal Telegram' search: @andrus_news_bot.
+Bot in the internal Telegram' search: `now deactivated`.
 
-Bot's Link in browser: https://t.me/andrus_news_bot.
+Bot's Link in browser: `now deactivated`.
 
-Link on Github: https://github.com/AndrusKarchevskiy/NewsBot.
+Link on Github: https://github.com/karchx/NewsBot.
