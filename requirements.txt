@@ -1,7 +1,8 @@
 python-dateutil~=2.8.1
-pyowm~=2.10.0
-requests~=2.24.0
-aiosqlite~=0.15.0
-python-dotenv~=0.14.0
-aiogram~=2.9.2
-APScheduler~=3.6.3
+pyowm==2.10.0
+requests==2.25.1
+aiosqlite==0.17.0
+python-dotenv==0.17.1
+aiogram==2.13
+APScheduler==3.7.0
+newsapi-python==0.2.6
