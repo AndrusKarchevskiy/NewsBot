@@ -28,8 +28,13 @@ All used modules and libs you can check in project or at requirements.txt
 
 **Links**
 
-Bot in the internal Telegram' search: `now deactivated`.
+Bot in the internal Telegram' search: `@nb_newsbot`.
 
-Bot's Link in browser: `now deactivated`.
+Bot's Link in browser: `https://t.me/nb_newsbot`.
 
 Link on Github: https://github.com/karchx/NewsBot.
+
+**Bot preview**
+
+![i_PBbzne_mQ](https://user-images.githubusercontent.com/62261985/116716731-c3579f00-a9e0-11eb-9921-0504c0cfb18b.jpg)
+
